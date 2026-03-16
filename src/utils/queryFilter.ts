@@ -29,15 +29,15 @@ import { TaskItem } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type FilterFn = (task: TaskItem) => boolean;
+export type FilterFn = (task: TaskItem) => boolean;
 
-interface ParsedQuery {
+export interface ParsedQuery {
 	filters: FilterFn[];
 	limit: number | null;
 	sortBy: SortField | null;
 }
 
-type SortField = 'priority' | 'due' | 'description';
+export type SortField = 'priority' | 'due' | 'description';
 
 // ── Priority helpers ───────────────────────────────────────────────────────────
 

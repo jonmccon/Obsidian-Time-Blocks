@@ -94,6 +94,17 @@ npm run dev
 
 # Lint
 npm run lint
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
-Requires Node.js v16 or later.
+Tests use [Vitest](https://vitest.dev/) and run entirely without an Obsidian
+installation. The test suite covers the utility modules (`weekUtils`,
+`icsParser`, `queryFilter`, `taskQuery`) as well as settings defaults and type
+shapes. CI runs build, lint, and tests on every push and pull request.
+
+Requires Node.js v18 or later.

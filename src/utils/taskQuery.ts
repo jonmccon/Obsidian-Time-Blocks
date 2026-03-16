@@ -17,7 +17,7 @@ const PRIORITY_MAP: Record<string, number> = {
 const PRIORITY_REGEX = /[🔺⏫🔼🔽⏬]/u;
 
 /** Tries to parse a single markdown list line as a task item. */
-function parseTaskLine(
+export function parseTaskLine(
 	line: string,
 	filePath: string,
 	lineNumber: number
