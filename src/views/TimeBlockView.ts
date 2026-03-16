@@ -242,16 +242,13 @@ export class TimeBlockView extends ItemView {
 
 		if (task.tags.length > 0) {
 			const tagsEl = el.createDiv('tb-task-tags');
-			const tagColors = this.plugin.settings.tagColors;
+			const colorMap = buildTagColorMap(this.plugin.settings.tagColors);
 			for (const tag of task.tags) {
 				const span = tagsEl.createSpan({ text: tag, cls: 'tb-tag' });
-				const lower = tag.toLowerCase();
-				for (const key of Object.keys(tagColors)) {
-					if (key.toLowerCase() === lower) {
-						span.setCssProps({ '--tb-tag-color': tagColors[key] });
-						span.addClass('tb-tag--colored');
-						break;
-					}
+				const color = colorMap.get(tag.toLowerCase());
+				if (color) {
+					span.setCssProps({ '--tb-tag-color': color });
+					span.addClass('tb-tag--colored');
 				}
 			}
 		}
@@ -679,12 +676,19 @@ function tagFilter(raw: string): string | undefined {
  * Falls back to `settings.taskBlockColor` when no tag color is configured.
  */
 function resolveTaskColor(task: TaskItem, settings: TimeBlockSettings): string {
-	const tagColors = settings.tagColors;
+	const map = buildTagColorMap(settings.tagColors);
 	for (const tag of task.tags) {
-		const lower = tag.toLowerCase();
-		for (const key of Object.keys(tagColors)) {
-			if (key.toLowerCase() === lower) return tagColors[key];
-		}
+		const color = map.get(tag.toLowerCase());
+		if (color) return color;
 	}
 	return settings.taskBlockColor;
+}
+
+/** Builds a lowercase-keyed lookup map from the user's tag-color record. */
+function buildTagColorMap(tagColors: Record<string, string>): Map<string, string> {
+	const map = new Map<string, string>();
+	for (const key of Object.keys(tagColors)) {
+		map.set(key.toLowerCase(), tagColors[key]);
+	}
+	return map;
 }

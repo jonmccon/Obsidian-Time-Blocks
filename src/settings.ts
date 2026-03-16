@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import TimeBlockPlugin from './main';
 
 /** Controls which tasks appear in the sidebar backlog. */
@@ -305,7 +305,10 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 						const trimmed = newTag.trim();
 						if (trimmed.length === 0) return;
 						const normalized = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
-						if (this.plugin.settings.tagColors[normalized]) return;
+						if (this.plugin.settings.tagColors[normalized]) {
+							new Notice(`Tag color for ${normalized} already exists.`);
+							return;
+						}
 						this.plugin.settings.tagColors[normalized] =
 							this.plugin.settings.taskBlockColor;
 						await this.plugin.saveSettings();
