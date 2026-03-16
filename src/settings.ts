@@ -1,6 +1,9 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import TimeBlockPlugin from './main';
 
+/** Controls which tasks appear in the sidebar backlog. */
+export type BacklogMode = 'all' | 'custom';
+
 export interface TimeBlockSettings {
 	/**
 	 * Google Calendar private ICS URL.
@@ -23,11 +26,31 @@ export interface TimeBlockSettings {
 	/** Background color for Google Calendar event blocks (CSS hex string). */
 	gcalEventColor: string;
 
-	/** When true, completed tasks appear in the backlog. */
+	/** When true, completed tasks appear in the backlog (applies to "All tasks" mode). */
 	showCompletedTasks: boolean;
 
-	/** Optional tag filter for the backlog (e.g. "#work"). Leave empty to show all tasks. */
+	/** Optional tag filter for the backlog (e.g. "#work"). Applies to "All tasks" mode only. */
 	taskTagFilter: string;
+
+	/**
+	 * Backlog mode.
+	 * - `'all'`    — show every task in the vault (filtered by tag/completed toggles).
+	 * - `'custom'` — apply the user-defined query in `customTaskQuery`.
+	 */
+	backlogMode: BacklogMode;
+
+	/**
+	 * Multi-line custom query string using a subset of the Obsidian Tasks
+	 * community plugin query syntax.  Only used when `backlogMode === 'custom'`.
+	 *
+	 * Each line is one filter rule; rules are ANDed together.
+	 * Example:
+	 *   not done
+	 *   due before 2025-12-31
+	 *   tag includes #work
+	 *   limit to 20 tasks
+	 */
+	customTaskQuery: string;
 }
 
 export const DEFAULT_SETTINGS: TimeBlockSettings = {
@@ -39,6 +62,8 @@ export const DEFAULT_SETTINGS: TimeBlockSettings = {
 	gcalEventColor: '#4285F4',
 	showCompletedTasks: false,
 	taskTagFilter: '',
+	backlogMode: 'all',
+	customTaskQuery: '',
 };
 
 export class TimeBlockSettingTab extends PluginSettingTab {
@@ -121,32 +146,76 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Tag filter')
+			.setName('Backlog mode')
 			.setDesc(
-				'Only show tasks with this tag in the backlog (e.g. #work). ' +
-				'Leave blank to include all tasks.'
+				'Choose how the sidebar backlog is populated. ' +
+				'"All tasks" shows every task (with optional tag filter). ' +
+				'"Custom query" applies a multi-line query using Tasks-plugin-compatible syntax.'
 			)
-			.addText((text) =>
-				text
-					.setPlaceholder('#work')
-					.setValue(this.plugin.settings.taskTagFilter)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('all', 'All tasks')
+					.addOption('custom', 'Custom query')
+					.setValue(this.plugin.settings.backlogMode)
 					.onChange(async (value) => {
-						this.plugin.settings.taskTagFilter = value;
+						this.plugin.settings.backlogMode = value as 'all' | 'custom';
 						await this.plugin.saveSettings();
+						// Redraw to show/hide mode-specific controls
+						this.display();
 					})
 			);
 
-		new Setting(containerEl)
-			.setName('Show completed tasks')
-			.setDesc('Include tasks marked done in the backlog.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showCompletedTasks)
-					.onChange(async (value) => {
-						this.plugin.settings.showCompletedTasks = value;
-						await this.plugin.saveSettings();
-					})
-			);
+		// ── "All tasks" mode controls ──────────────────────────────────────
+		if (this.plugin.settings.backlogMode === 'all') {
+			new Setting(containerEl)
+				.setName('Tag filter')
+				.setDesc(
+					'Only show tasks with this tag in the backlog (e.g. #work). ' +
+					'Leave blank to include all tasks.'
+				)
+				.addText((text) =>
+					text
+						.setPlaceholder('#work')
+						.setValue(this.plugin.settings.taskTagFilter)
+						.onChange(async (value) => {
+							this.plugin.settings.taskTagFilter = value;
+							await this.plugin.saveSettings();
+						})
+				);
+
+			new Setting(containerEl)
+				.setName('Show completed tasks')
+				.setDesc('Include tasks marked done in the backlog.')
+				.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.showCompletedTasks)
+						.onChange(async (value) => {
+							this.plugin.settings.showCompletedTasks = value;
+							await this.plugin.saveSettings();
+						})
+				);
+		}
+
+		// ── "Custom query" mode controls ───────────────────────────────────
+		if (this.plugin.settings.backlogMode === 'custom') {
+			new Setting(containerEl)
+				.setName('Custom query')
+				.setDesc(
+					'One filter rule per line, using Obsidian Tasks query syntax. ' +
+					'Rules are ANDed together. Lines starting with # are comments.'
+				)
+				.addTextArea((area) => {
+					area
+						.setPlaceholder('Enter query rules, one per line')
+						.setValue(this.plugin.settings.customTaskQuery)
+						.onChange(async (value) => {
+							this.plugin.settings.customTaskQuery = value;
+							await this.plugin.saveSettings();
+						});
+					area.inputEl.rows = 6;
+					area.inputEl.addClass('tb-query-textarea');
+				});
+		}
 
 		// ── Colors ────────────────────────────────────────────────────────────
 		new Setting(containerEl).setName('Colors').setHeading();

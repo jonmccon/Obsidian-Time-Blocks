@@ -92,6 +92,23 @@ export async function queryTasks(
 	app: App,
 	filter: TaskQueryFilter = {}
 ): Promise<TaskItem[]> {
+	const all = await scanAllTasks(app);
+
+	const filtered = all.filter((task) => {
+		if (!filter.showCompleted && task.completed) return false;
+		if (filter.tagFilter && !task.tags.includes(filter.tagFilter)) return false;
+		return true;
+	});
+
+	return sortTasksDefault(filtered);
+}
+
+/**
+ * Scans all markdown files and returns every task with no filtering applied.
+ * Intended for use with the custom-query pipeline where the queryFilter
+ * module handles filtering and sorting.
+ */
+export async function scanAllTasks(app: App): Promise<TaskItem[]> {
 	const markdownFiles = app.vault.getMarkdownFiles();
 
 	const perFile = await Promise.all(
@@ -105,14 +122,7 @@ export async function queryTasks(
 					const line = lines[i];
 					if (!line) continue;
 					const task = parseTaskLine(line, file.path, i + 1);
-					if (!task) continue;
-					if (!filter.showCompleted && task.completed) continue;
-					if (
-						filter.tagFilter &&
-						!task.tags.includes(filter.tagFilter)
-					)
-						continue;
-					tasks.push(task);
+					if (task) tasks.push(task);
 				}
 
 				return tasks;
@@ -122,21 +132,20 @@ export async function queryTasks(
 		})
 	);
 
-	const all = perFile.flat();
+	return perFile.flat();
+}
 
-	all.sort((a, b) => {
-		// Priority (lower number = higher priority; undefined goes last)
+/** Default sort: priority → due date → title. */
+function sortTasksDefault(tasks: TaskItem[]): TaskItem[] {
+	return tasks.sort((a, b) => {
 		const pa = a.priority ?? 999;
 		const pb = b.priority ?? 999;
 		if (pa !== pb) return pa - pb;
 
-		// Due date (earlier first; no date goes last)
 		const da = a.dueDate?.getTime() ?? Infinity;
 		const db = b.dueDate?.getTime() ?? Infinity;
 		if (da !== db) return da - db;
 
 		return a.title.localeCompare(b.title);
 	});
-
-	return all;
 }

@@ -405,3 +405,9 @@
 	background: rgba(255, 255, 255, 0.45);
 }
 
+/* ── Settings: custom query textarea ───────────────────────── */
+.tb-query-textarea {
+	width: 100%;
+	font-family: var(--font-monospace);
+}
+
