@@ -159,8 +159,8 @@ export class TimeBlockView extends ItemView {
 		// Header
 		const header = this.sidebarEl.createDiv('tb-sidebar-header');
 		const modeLabel = this.plugin.settings.backlogMode === 'custom'
-			? 'Custom query'
-			: 'Task backlog';
+			? 'Backlog (query)'
+			: 'Backlog (all)';
 		header.createEl('span', { text: modeLabel, cls: 'tb-sidebar-title' });
 
 		const refreshBtn = header.createEl('button', {

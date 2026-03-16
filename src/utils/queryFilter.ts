@@ -158,7 +158,7 @@ export function parseQuery(raw: string): ParsedQuery {
 			);
 			continue;
 		}
-		const tagExcMatch = lower.match(/^tags?\s+does\s+not\s+include\s+(.+)$/);
+		const tagExcMatch = lower.match(/^tags?\s+does\s+not\s+includes?\s+(.+)$/);
 		if (tagExcMatch) {
 			const tag = (tagExcMatch[1] as string).trim().toLowerCase();
 			result.filters.push((t) =>
