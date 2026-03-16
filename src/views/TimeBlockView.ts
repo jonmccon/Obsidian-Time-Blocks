@@ -39,6 +39,9 @@ export class TimeBlockView extends ItemView {
 	private draggingTaskId: string | null = null;
 	private draggingBlockId: string | null = null;
 
+	/** Monotonic counter for unique block IDs within this session. */
+	private blockIdCounter = 0;
+
 	constructor(leaf: WorkspaceLeaf, plugin: TimeBlockPlugin) {
 		super(leaf);
 		this.plugin = plugin;
@@ -228,7 +231,7 @@ export class TimeBlockView extends ItemView {
 		prevBtn.addEventListener('click', () => this.navigateWeek(-1));
 
 		const days = getWeekDays(this.weekStart);
-		const mondayLabel = (days[0] as Date).toLocaleDateString(undefined, {
+		const mondayLabel = days[0].toLocaleDateString(undefined, {
 			month: 'long',
 			day: 'numeric',
 			year: 'numeric',
@@ -284,10 +287,9 @@ export class TimeBlockView extends ItemView {
 		}
 
 		// Day columns
-		for (let d = 0; d < 7; d++) {
-			// days always has exactly 7 elements; safe to assert non-null
-			this.buildDayColumn(days[d] as Date, d, totalHours, workdayStart, workdayEnd);
-		}
+		days.forEach((day, d) =>
+			this.buildDayColumn(day, d, totalHours, workdayStart, workdayEnd)
+		);
 	}
 
 	private buildDayColumn(
@@ -406,7 +408,7 @@ export class TimeBlockView extends ItemView {
 		if (!task) return;
 
 		const block: ScheduledBlock = {
-			id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+			id: `block-${++this.blockIdCounter}-${Date.now()}`,
 			taskId,
 			title: task.title,
 			weekStart: formatDate(this.weekStart),
@@ -446,13 +448,12 @@ export class TimeBlockView extends ItemView {
 		const weekDays = getWeekDays(this.weekStart);
 
 		// Re-draw now indicator (it was inside slots, which we just cleared)
-		for (let d = 0; d < 7; d++) {
-			// weekDays always has exactly 7 elements; safe to assert non-null
-			if (isToday(weekDays[d] as Date)) {
+		weekDays.forEach((day, d) => {
+			if (isToday(day)) {
 				const slotsEl = this.getDaySlots(d);
 				if (slotsEl) this.renderNowIndicator(slotsEl, workdayStart, workdayEnd);
 			}
-		}
+		});
 
 		// Scheduled task / manual blocks
 		for (const block of this.plugin.blocks) {
@@ -464,10 +465,8 @@ export class TimeBlockView extends ItemView {
 		for (const event of this.gcalEvents) {
 			if (event.isAllDay) continue;
 
-			for (let d = 0; d < 7; d++) {
-				// weekDays always has exactly 7 elements; safe to assert non-null
-				const day = weekDays[d] as Date;
-				if (event.start.toDateString() !== day.toDateString()) continue;
+			weekDays.forEach((day, d) => {
+				if (event.start.toDateString() !== day.toDateString()) return;
 
 				const durationMins = Math.round(
 					(event.end.getTime() - event.start.getTime()) / 60_000
@@ -486,7 +485,7 @@ export class TimeBlockView extends ItemView {
 					source: 'gcal',
 				};
 				this.renderBlock(gcalBlock, workdayStart, workdayEnd);
-			}
+			});
 		}
 	}
 
@@ -517,9 +516,8 @@ export class TimeBlockView extends ItemView {
 
 		blockEl.createDiv({ text: block.title, cls: 'tb-block-title' });
 
-		const startLabel = `${formatHour(block.startHour)}${block.startMinute > 0 ? `:${String(block.startMinute).padStart(2, '0')}` : ''}`;
 		blockEl.createDiv({
-			text: `${startLabel} · ${block.duration} min`,
+			text: formatBlockTimeLabel(block),
 			cls: 'tb-block-time',
 		});
 
@@ -551,15 +549,7 @@ export class TimeBlockView extends ItemView {
 			del.setAttribute('title', 'Remove from schedule');
 			del.addEventListener('click', (e: MouseEvent) => {
 				e.stopPropagation();
-				this.plugin.blocks = this.plugin.blocks.filter(
-					(b) => b.id !== block.id
-				);
-				void this.plugin.saveBlocks().then(() => {
-					void this.loadTasks().then(() => {
-						this.renderBacklogList();
-						this.renderBlocks();
-					});
-				});
+				void this.deleteBlock(block.id);
 			});
 		}
 	}
@@ -590,8 +580,7 @@ export class TimeBlockView extends ItemView {
 				);
 				blockEl.style.height = `${(block.duration / 60) * HOUR_HEIGHT}px`;
 				if (timeEl) {
-					const startLabel = `${formatHour(block.startHour)}${block.startMinute > 0 ? `:${String(block.startMinute).padStart(2, '0')}` : ''}`;
-					timeEl.textContent = `${startLabel} · ${block.duration} min`;
+					timeEl.textContent = formatBlockTimeLabel(block);
 				}
 			};
 
@@ -608,12 +597,30 @@ export class TimeBlockView extends ItemView {
 
 	// ── Helpers ────────────────────────────────────────────────────────────────
 
+	/** Removes a block from the schedule and refreshes the UI. */
+	private async deleteBlock(blockId: string): Promise<void> {
+		this.plugin.blocks = this.plugin.blocks.filter((b) => b.id !== blockId);
+		await this.plugin.saveBlocks();
+		await this.loadTasks();
+		this.renderBacklogList();
+		this.renderBlocks();
+	}
+
 	private getDaySlots(dayIndex: number): HTMLElement | null {
 		const col = this.gridEl?.querySelector(
 			`.tb-day-col[data-day-index="${dayIndex}"]`
 		);
-		return col ? (col.querySelector('.tb-slots') as HTMLElement) : null;
+		return col ? col.querySelector<HTMLElement>('.tb-slots') : null;
 	}
+}
+
+
+/** Formats a block's start time and duration as a short label, e.g. "9 AM · 30 min". */
+function formatBlockTimeLabel(block: ScheduledBlock): string {
+	const startLabel = block.startMinute > 0
+		? `${formatHour(block.startHour)}:${String(block.startMinute).padStart(2, '0')}`
+		: formatHour(block.startHour);
+	return `${startLabel} · ${block.duration} min`;
 }
 
 /** Returns `undefined` when the filter string is empty/whitespace. */

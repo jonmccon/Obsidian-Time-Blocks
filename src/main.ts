@@ -74,7 +74,7 @@ export default class TimeBlockPlugin extends Plugin {
 	 * Must be called once from onload() before any view opens.
 	 */
 	async loadSettings(): Promise<void> {
-		const raw = ((await this.loadData()) ?? {}) as Partial<PersistedData>;
+		const raw = (await this.loadData() ?? {}) as Partial<PersistedData>;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw.settings ?? {});
 		this.blocks = raw.blocks ?? [];
 	}

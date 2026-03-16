@@ -13,12 +13,13 @@ export function getWeekStart(date: Date): Date {
 /**
  * Returns an array of 7 Date objects (Mon … Sun) for the week starting at `weekStart`.
  */
-export function getWeekDays(weekStart: Date): Date[] {
-	return Array.from({ length: 7 }, (_, i) => {
+export function getWeekDays(weekStart: Date): [Date, Date, Date, Date, Date, Date, Date] {
+	const day = (offset: number): Date => {
 		const d = new Date(weekStart);
-		d.setDate(d.getDate() + i);
+		d.setDate(d.getDate() + offset);
 		return d;
-	});
+	};
+	return [day(0), day(1), day(2), day(3), day(4), day(5), day(6)];
 }
 
 /** Formats a Date as an ISO date string (YYYY-MM-DD, local time). */

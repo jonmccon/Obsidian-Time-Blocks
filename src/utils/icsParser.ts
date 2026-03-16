@@ -33,20 +33,23 @@ function parseICSDate(value: string): Date | null {
 
 	// UTC: YYYYMMDDTHHmmssZ
 	if (/^\d{8}T\d{6}Z$/.test(value)) {
-		return new Date(
-			`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}` +
-			`T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`
-		);
+		const year  = value.slice(0, 4);
+		const month = value.slice(4, 6);
+		const day   = value.slice(6, 8);
+		const hour  = value.slice(9, 11);
+		const min   = value.slice(11, 13);
+		const sec   = value.slice(13, 15);
+		return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
 	}
 
 	// Floating (local): YYYYMMDDTHHmmss
 	if (/^\d{8}T\d{6}$/.test(value)) {
-		const y = parseInt(value.slice(0, 4), 10);
+		const y  = parseInt(value.slice(0, 4), 10);
 		const mo = parseInt(value.slice(4, 6), 10) - 1;
-		const d = parseInt(value.slice(6, 8), 10);
-		const h = parseInt(value.slice(9, 11), 10);
+		const d  = parseInt(value.slice(6, 8), 10);
+		const h  = parseInt(value.slice(9, 11), 10);
 		const mi = parseInt(value.slice(11, 13), 10);
-		const s = parseInt(value.slice(13, 15), 10);
+		const s  = parseInt(value.slice(13, 15), 10);
 		return new Date(y, mo, d, h, mi, s);
 	}
 
