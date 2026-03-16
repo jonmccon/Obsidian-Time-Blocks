@@ -688,7 +688,8 @@ function resolveTaskColor(task: TaskItem, settings: TimeBlockSettings): string {
 function buildTagColorMap(tagColors: Record<string, string>): Map<string, string> {
 	const map = new Map<string, string>();
 	for (const key of Object.keys(tagColors)) {
-		map.set(key.toLowerCase(), tagColors[key] ?? '');
+		const color = tagColors[key];
+		if (color) map.set(key.toLowerCase(), color);
 	}
 	return map;
 }
