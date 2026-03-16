@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-time-blocks",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Weekly time-blocking canvas with Tasks-plugin backlog, drag-and-drop scheduling, and Google Calendar integration.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
