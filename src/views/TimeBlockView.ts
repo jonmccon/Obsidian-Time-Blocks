@@ -2,7 +2,8 @@ import { ItemView, Notice, WorkspaceLeaf, requestUrl } from 'obsidian';
 import TimeBlockPlugin from '../main';
 import { GCalEvent, ScheduledBlock, TaskItem } from '../types';
 import { parseICS } from '../utils/icsParser';
-import { queryTasks } from '../utils/taskQuery';
+import { applyQuery, parseQuery } from '../utils/queryFilter';
+import { queryTasks, scanAllTasks } from '../utils/taskQuery';
 import {
 	addWeeks,
 	formatDate,
@@ -81,11 +82,23 @@ export class TimeBlockView extends ItemView {
 	}
 
 	private async loadTasks(): Promise<void> {
-		const { showCompletedTasks, taskTagFilter } = this.plugin.settings;
-		const all = await queryTasks(this.app, {
-			showCompleted: showCompletedTasks,
-			tagFilter: tagFilter(taskTagFilter),
-		});
+		const { backlogMode, showCompletedTasks, taskTagFilter, customTaskQuery } =
+			this.plugin.settings;
+
+		let all: TaskItem[];
+
+		if (backlogMode === 'custom' && customTaskQuery.trim()) {
+			// Custom query mode: scan all tasks, then apply the user-defined query
+			const raw = await scanAllTasks(this.app);
+			const parsed = parseQuery(customTaskQuery);
+			all = applyQuery(raw, parsed);
+		} else {
+			// All-tasks mode (default): use tag filter + completed toggle
+			all = await queryTasks(this.app, {
+				showCompleted: showCompletedTasks,
+				tagFilter: tagFilter(taskTagFilter),
+			});
+		}
 
 		// Filter out tasks that are already scheduled this week so the backlog
 		// only shows tasks still needing placement.
@@ -101,6 +114,14 @@ export class TimeBlockView extends ItemView {
 	private async loadGCalEvents(): Promise<void> {
 		const url = this.plugin.settings.googleCalendarIcsUrl.trim();
 		if (!url) return;
+
+		// Security: only allow HTTPS URLs to prevent accidental fetches to
+		// local-network or non-encrypted endpoints.
+		if (!url.startsWith('https://')) {
+			console.warn('[Time Blocks] Calendar URL rejected: only HTTPS URLs are allowed.');
+			new Notice('Time blocks: calendar URL must use HTTPS.');
+			return;
+		}
 
 		try {
 			const resp = await requestUrl({ url, method: 'GET' });
@@ -137,7 +158,10 @@ export class TimeBlockView extends ItemView {
 	private buildSidebar(): void {
 		// Header
 		const header = this.sidebarEl.createDiv('tb-sidebar-header');
-		header.createEl('span', { text: 'Task backlog', cls: 'tb-sidebar-title' });
+		const modeLabel = this.plugin.settings.backlogMode === 'custom'
+			? 'Custom query'
+			: 'Task backlog';
+		header.createEl('span', { text: modeLabel, cls: 'tb-sidebar-title' });
 
 		const refreshBtn = header.createEl('button', {
 			cls: 'tb-icon-btn',
@@ -402,7 +426,7 @@ export class TimeBlockView extends ItemView {
 		// Find task in already-loaded backlog, or re-query
 		let task = this.backlogTasks.find((t) => t.id === taskId);
 		if (!task) {
-			const all = await queryTasks(this.app);
+			const all = await scanAllTasks(this.app);
 			task = all.find((t) => t.id === taskId);
 		}
 		if (!task) return;
