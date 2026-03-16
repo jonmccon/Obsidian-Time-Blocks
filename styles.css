@@ -411,3 +411,29 @@
 	font-family: var(--font-monospace);
 }
 
+/* ── Tag color indicator (left border on backlog items) ────── */
+.tb-tag-color-indicator {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 3px;
+	border-radius: 5px 0 0 5px;
+	background: var(--tb-tag-color);
+}
+
+.tb-task-item:has(.tb-tag-color-indicator) {
+	position: relative;
+	padding-left: 11px;
+}
+
+/* ── Individual tag chips with optional color ────────────────── */
+.tb-tag {
+	margin-right: 4px;
+}
+
+.tb-tag--colored {
+	color: var(--tb-tag-color);
+	font-weight: 600;
+}
+

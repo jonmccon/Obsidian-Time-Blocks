@@ -26,6 +26,13 @@ export interface TimeBlockSettings {
 	/** Background color for Google Calendar event blocks (CSS hex string). */
 	gcalEventColor: string;
 
+	/**
+	 * Per-tag color overrides. Keys are tag strings (e.g. "#work"), values
+	 * are CSS hex color strings.  When a task carries a tag listed here its
+	 * block uses this color instead of `taskBlockColor`.
+	 */
+	tagColors: Record<string, string>;
+
 	/** When true, completed tasks appear in the backlog (applies to "All tasks" mode). */
 	showCompletedTasks: boolean;
 
@@ -60,6 +67,7 @@ export const DEFAULT_SETTINGS: TimeBlockSettings = {
 	workdayEnd: 18,
 	taskBlockColor: '#7B61FF',
 	gcalEventColor: '#4285F4',
+	tagColors: {},
 	showCompletedTasks: false,
 	taskTagFilter: '',
 	backlogMode: 'all',
@@ -241,6 +249,67 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.gcalEventColor = value;
 						await this.plugin.saveSettings();
+					})
+			);
+
+		// ── Tag colors ────────────────────────────────────────────────────────
+		new Setting(containerEl)
+			.setName('Tag colors')
+			.setDesc(
+				'Override the default task color for specific tags. ' +
+				'The first matching tag on a task determines its block color.'
+			)
+			.setHeading();
+
+		const tagColors = this.plugin.settings.tagColors;
+		for (const tag of Object.keys(tagColors)) {
+			new Setting(containerEl)
+				.setName(tag)
+				.addColorPicker((picker) =>
+					picker
+						.setValue(tagColors[tag])
+						.onChange(async (value) => {
+							this.plugin.settings.tagColors[tag] = value;
+							await this.plugin.saveSettings();
+						})
+				)
+				.addExtraButton((btn) =>
+					btn
+						.setIcon('trash')
+						.setTooltip('Remove tag color')
+						.onClick(async () => {
+							delete this.plugin.settings.tagColors[tag];
+							await this.plugin.saveSettings();
+							this.display();
+						})
+				);
+		}
+
+		let newTag = '';
+		new Setting(containerEl)
+			.setName('Add tag color')
+			.setDesc('Enter a tag (e.g. #work) and pick a color.')
+			.addText((text) =>
+				text
+					.setPlaceholder('#tag')
+					.setValue(newTag)
+					.onChange((value) => {
+						newTag = value;
+					})
+			)
+			.addButton((btn) =>
+				btn
+					.setButtonText('Add')
+					.setCta()
+					.onClick(async () => {
+						const trimmed = newTag.trim();
+						if (trimmed.length === 0) return;
+						const normalized = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+						if (this.plugin.settings.tagColors[normalized]) return;
+						this.plugin.settings.tagColors[normalized] =
+							this.plugin.settings.taskBlockColor;
+						await this.plugin.saveSettings();
+						this.display();
 					})
 			);
 	}

@@ -1,5 +1,6 @@
 import { ItemView, Notice, WorkspaceLeaf, requestUrl } from 'obsidian';
 import TimeBlockPlugin from '../main';
+import { TimeBlockSettings } from '../settings';
 import { GCalEvent, ScheduledBlock, TaskItem } from '../types';
 import { parseICS } from '../utils/icsParser';
 import { applyQuery, parseQuery } from '../utils/queryFilter';
@@ -213,6 +214,13 @@ export class TimeBlockView extends ItemView {
 		el.dataset.taskId = task.id;
 		el.setAttribute('title', `${task.filePath} : line ${task.lineNumber}`);
 
+		// Tag-color indicator bar (shows the color that will be used for the block)
+		const taskColor = resolveTaskColor(task, this.plugin.settings);
+		if (taskColor !== this.plugin.settings.taskBlockColor) {
+			const indicator = el.createDiv('tb-tag-color-indicator');
+			indicator.setCssProps({ '--tb-tag-color': taskColor });
+		}
+
 		// Priority indicator
 		if (task.priority !== undefined) {
 			const icons = ['', '🔺', '⏫', '🔼', '🔽', '⏬'];
@@ -233,7 +241,19 @@ export class TimeBlockView extends ItemView {
 		}
 
 		if (task.tags.length > 0) {
-			el.createDiv({ text: task.tags.join(' '), cls: 'tb-task-tags' });
+			const tagsEl = el.createDiv('tb-task-tags');
+			const tagColors = this.plugin.settings.tagColors;
+			for (const tag of task.tags) {
+				const span = tagsEl.createSpan({ text: tag, cls: 'tb-tag' });
+				const lower = tag.toLowerCase();
+				for (const key of Object.keys(tagColors)) {
+					if (key.toLowerCase() === lower) {
+						span.setCssProps({ '--tb-tag-color': tagColors[key] });
+						span.addClass('tb-tag--colored');
+						break;
+					}
+				}
+			}
 		}
 
 		el.addEventListener('dragstart', (e: DragEvent) => {
@@ -440,7 +460,7 @@ export class TimeBlockView extends ItemView {
 			startHour,
 			startMinute,
 			duration: this.plugin.settings.defaultTaskDuration,
-			color: this.plugin.settings.taskBlockColor,
+			color: resolveTaskColor(task, this.plugin.settings),
 			source: 'task',
 		};
 		this.plugin.blocks.push(block);
@@ -651,4 +671,20 @@ function formatBlockTimeLabel(block: ScheduledBlock): string {
 function tagFilter(raw: string): string | undefined {
 	const trimmed = raw.trim();
 	return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * Returns the color to use for a task block.
+ * Checks the task's tags against `settings.tagColors`; the first match wins.
+ * Falls back to `settings.taskBlockColor` when no tag color is configured.
+ */
+function resolveTaskColor(task: TaskItem, settings: TimeBlockSettings): string {
+	const tagColors = settings.tagColors;
+	for (const tag of task.tags) {
+		const lower = tag.toLowerCase();
+		for (const key of Object.keys(tagColors)) {
+			if (key.toLowerCase() === lower) return tagColors[key];
+		}
+	}
+	return settings.taskBlockColor;
 }
