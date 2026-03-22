@@ -140,7 +140,7 @@ export class TimeBlockView extends ItemView {
 					const parsed = parseICS(resp.text);
 					return parsed.map((event) => ({
 						...event,
-						id: `${feed.id}-${event.id}`,
+						id: `${feed.id}::${event.id}`,
 					}));
 				} catch (err) {
 					console.error('[Time Blocks] GCal fetch failed:', err);
