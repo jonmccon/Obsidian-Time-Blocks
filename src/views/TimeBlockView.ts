@@ -607,10 +607,7 @@ export class TimeBlockView extends ItemView {
 				e.stopPropagation();
 				void this.updateTaskCompletion(taskId, complete.checked);
 			});
-		}
 
-		if (block.source === 'task' && block.taskId) {
-			const taskId = block.taskId;
 			const titleButton = header.createEl('button', {
 				text: block.title,
 				cls: 'tb-block-title tb-block-title--link',
