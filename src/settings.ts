@@ -9,8 +9,6 @@ export function calendarFeedLabel(index: number): string {
 	return `Calendar feed ${index + 1}`;
 }
 
-let calendarFeedIdCounter = 0;
-
 export interface CalendarFeed {
 	id: string;
 	/** Private ICS feed URL. */
@@ -446,13 +444,18 @@ export function createCalendarFeedId(): string {
 	if (cryptoObj?.randomUUID) {
 		return `calendar-${cryptoObj.randomUUID()}`;
 	}
-	const buffer = new Uint32Array(2);
-	cryptoObj?.getRandomValues?.(buffer);
-	const suffix = Array.from(buffer)
-		.map((value) => value.toString(16))
-		.join('');
-	calendarFeedIdCounter += 1;
-	return `calendar-${Date.now()}-${calendarFeedIdCounter}-${suffix || Math.random().toString(16).slice(2, 8)}`;
+	let suffix = '';
+	if (cryptoObj?.getRandomValues) {
+		const buffer = new Uint32Array(2);
+		cryptoObj.getRandomValues(buffer);
+		suffix = Array.from(buffer)
+			.map((value) => value.toString(16))
+			.join('');
+	}
+	if (!suffix) {
+		suffix = Math.random().toString(16).slice(2, 10);
+	}
+	return `calendar-${Date.now()}-${suffix}`;
 }
 
 function setCalendarStatusEl(
