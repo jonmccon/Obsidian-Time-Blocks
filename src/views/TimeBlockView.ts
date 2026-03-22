@@ -97,8 +97,7 @@ export class TimeBlockView extends ItemView {
 		let all: TaskItem[];
 
 		// Keep a full index for scheduled blocks even if the backlog is filtered.
-		const raw = await scanAllTasks(this.app);
-		this.taskIndex = new Map(raw.map((task) => [task.id, task]));
+		const raw = await this.rebuildTaskIndex();
 
 		if (backlogMode === 'custom' && customTaskQuery.trim()) {
 			// Custom query mode: scan all tasks, then apply the user-defined query
@@ -479,8 +478,7 @@ export class TimeBlockView extends ItemView {
 		// Find task in already-loaded backlog, or re-query
 		let task = this.taskIndex.get(taskId);
 		if (!task) {
-			const all = await scanAllTasks(this.app);
-			this.taskIndex = new Map(all.map((task) => [task.id, task]));
+			await this.rebuildTaskIndex();
 			task = this.taskIndex.get(taskId);
 		}
 		if (!task) return;
@@ -719,9 +717,14 @@ export class TimeBlockView extends ItemView {
 	private async resolveTask(taskId: string): Promise<TaskItem | null> {
 		const cached = this.taskIndex.get(taskId);
 		if (cached) return cached;
-		const all = await scanAllTasks(this.app);
-		this.taskIndex = new Map(all.map((task) => [task.id, task]));
+		await this.rebuildTaskIndex();
 		return this.taskIndex.get(taskId) ?? null;
+	}
+
+	private async rebuildTaskIndex(): Promise<TaskItem[]> {
+		const raw = await scanAllTasks(this.app);
+		this.taskIndex = new Map(raw.map((task) => [task.id, task]));
+		return raw;
 	}
 
 	private async openTaskSource(taskId: string): Promise<void> {
