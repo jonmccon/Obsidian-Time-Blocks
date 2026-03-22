@@ -740,16 +740,16 @@ export class TimeBlockView extends ItemView {
 			return;
 		}
 
-		const line = Math.max(task.lineNumber - 1, 0);
+		const lineIndex = Math.max(task.lineNumber - 1, 0);
 		const leaf = this.app.workspace.getLeaf('tab');
-		await leaf.openFile(file, { active: true, eState: { line, ch: 0 } });
+		await leaf.openFile(file, { active: true, eState: { line: lineIndex, ch: 0 } });
 
 		const view = leaf.view;
 		if (view instanceof MarkdownView) {
-			view.editor.setCursor({ line, ch: 0 });
+			view.editor.setCursor({ line: lineIndex, ch: 0 });
 			const centerOnLine = true;
 			view.editor.scrollIntoView(
-				{ from: { line, ch: 0 }, to: { line, ch: 0 } },
+				{ from: { line: lineIndex, ch: 0 }, to: { line: lineIndex, ch: 0 } },
 				centerOnLine
 			);
 		}
