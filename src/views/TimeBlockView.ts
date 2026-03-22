@@ -479,7 +479,7 @@ export class TimeBlockView extends ItemView {
 		let task = this.taskIndex.get(taskId);
 		if (!task) {
 			const all = await scanAllTasks(this.app);
-			this.taskIndex = new Map(all.map((item) => [item.id, item]));
+			this.taskIndex = new Map(all.map((task) => [task.id, task]));
 			task = this.taskIndex.get(taskId);
 		}
 		if (!task) return;
