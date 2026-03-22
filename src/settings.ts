@@ -439,6 +439,11 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 	}
 }
 
+/**
+ * Generates a unique calendar feed ID.
+ * Prefers `crypto.randomUUID()` when available, then `crypto.getRandomValues()`,
+ * and finally falls back to a timestamp + Math.random() for compatibility.
+ */
 export function createCalendarFeedId(): string {
 	const cryptoObj = globalThis.crypto;
 	if (cryptoObj?.randomUUID) {
