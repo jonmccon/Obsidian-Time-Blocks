@@ -139,7 +139,8 @@ export class TimeBlockView extends ItemView {
 					const resp = await requestUrl({ url, method: 'GET' });
 					const parsed = parseICS(resp.text);
 					// Namespace event IDs to avoid collisions across multiple feeds.
-					// Use "::" as a literal delimiter between encoded values.
+					// Use "::" as a literal delimiter between encoded feed and event IDs.
+					// To decode, split on "::" and run decodeURIComponent on each part.
 					const feedKey = encodeURIComponent(feed.id);
 					return parsed.map((event) => ({
 						...event,

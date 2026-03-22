@@ -445,6 +445,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
  * and finally falls back to a timestamp + Math.random() for compatibility.
  */
 export function createCalendarFeedId(): string {
+	// Prefer randomUUID, then getRandomValues, and finally timestamp + Math.random.
 	const cryptoObj = globalThis.crypto;
 	if (cryptoObj?.randomUUID) {
 		return `calendar-${cryptoObj.randomUUID()}`;
