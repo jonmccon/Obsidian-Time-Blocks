@@ -260,7 +260,7 @@ export class TimeBlockView extends ItemView {
 		const titleButton = header.createEl('button', {
 			text: task.title,
 			cls: 'tb-task-title',
-			attr: { type: 'button' },
+			attr: { type: 'button', 'aria-label': 'Open task in source file' },
 		});
 		titleButton.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -612,7 +612,7 @@ export class TimeBlockView extends ItemView {
 			const titleButton = header.createEl('button', {
 				text: block.title,
 				cls: 'tb-block-title tb-block-title--link',
-				attr: { type: 'button' },
+				attr: { type: 'button', 'aria-label': 'Open task in source file' },
 			});
 			titleButton.addEventListener('click', (e) => {
 				e.stopPropagation();
@@ -743,7 +743,11 @@ export class TimeBlockView extends ItemView {
 		const view = leaf.view;
 		if (view instanceof MarkdownView) {
 			view.editor.setCursor({ line, ch: 0 });
-			view.editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } }, true);
+			const centerOnLine = true;
+			view.editor.scrollIntoView(
+				{ from: { line, ch: 0 }, to: { line, ch: 0 } },
+				centerOnLine
+			);
 		}
 	}
 

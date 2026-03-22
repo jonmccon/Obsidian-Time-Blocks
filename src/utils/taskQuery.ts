@@ -96,7 +96,9 @@ export async function setTaskCompletion(
 	const index = task.lineNumber - 1;
 	if (index < 0 || index >= lines.length) return false;
 
-	const updated = updateTaskLineCompletion(lines[index] ?? '', completed);
+	const currentLine = lines[index];
+	if (currentLine === undefined) return false;
+	const updated = updateTaskLineCompletion(currentLine, completed);
 	if (!updated) return false;
 	if (updated === lines[index]) return true;
 
