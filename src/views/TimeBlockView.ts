@@ -96,6 +96,7 @@ export class TimeBlockView extends ItemView {
 
 		let all: TaskItem[];
 
+		// Keep a full index for scheduled blocks even if the backlog is filtered.
 		const raw = await scanAllTasks(this.app);
 		this.taskIndex = new Map(raw.map((task) => [task.id, task]));
 
