@@ -1,15 +1,31 @@
-import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 import TimeBlockPlugin from './main';
+import { parseICS } from './utils/icsParser';
 
 /** Controls which tasks appear in the sidebar backlog. */
 export type BacklogMode = 'all' | 'custom';
 
+export interface CalendarFeed {
+	id: string;
+	/** Private ICS feed URL. */
+	url: string;
+}
+
+type CalendarConnectionStatus = 'idle' | 'checking' | 'connected' | 'error';
+
+const CALENDAR_STATUS_LABELS: Record<CalendarConnectionStatus, string> = {
+	idle: 'Not checked',
+	checking: 'Checking…',
+	connected: 'Connected',
+	error: 'Connection failed',
+};
+
 export interface TimeBlockSettings {
 	/**
-	 * Google Calendar private ICS URL.
+	 * Google Calendar private ICS feed URLs.
 	 * Obtained from Google Calendar → Settings → "Secret address in iCal format".
 	 */
-	googleCalendarIcsUrl: string;
+	calendarFeeds: CalendarFeed[];
 
 	/** Default block duration (minutes) when a task is first dropped onto the grid. */
 	defaultTaskDuration: number;
@@ -61,7 +77,7 @@ export interface TimeBlockSettings {
 }
 
 export const DEFAULT_SETTINGS: TimeBlockSettings = {
-	googleCalendarIcsUrl: '',
+	calendarFeeds: [],
 	defaultTaskDuration: 30,
 	workdayStart: 8,
 	workdayEnd: 18,
@@ -76,6 +92,7 @@ export const DEFAULT_SETTINGS: TimeBlockSettings = {
 
 export class TimeBlockSettingTab extends PluginSettingTab {
 	plugin: TimeBlockPlugin;
+	private calendarConnectionStatus = new Map<string, CalendarConnectionStatus>();
 
 	constructor(app: App, plugin: TimeBlockPlugin) {
 		super(app, plugin);
@@ -89,19 +106,97 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 		// ── Google Calendar ──────────────────────────────────────────────────
 		new Setting(containerEl).setName('Google calendar').setHeading();
 
-		new Setting(containerEl)
-			.setName('Calendar feed URL')
-			.setDesc(
-				'Paste the private ICS feed URL from Google Calendar → Settings → ' +
-				'"Secret address in iCal format". The URL starts with https://calendar.google.com/calendar/ical/…'
-			)
-			.addText((text) =>
+		const calendars = this.plugin.settings.calendarFeeds;
+
+		if (calendars.length === 0) {
+			new Setting(containerEl).setDesc(
+				'No calendar feeds connected yet. Add one below to overlay events.'
+			);
+		}
+
+		calendars.forEach((feed, index) => {
+			const label = `Calendar feed ${index + 1}`;
+			let draftUrl = feed.url;
+			let statusEl: HTMLElement;
+
+			const setting = new Setting(containerEl)
+				.setName(label)
+				.setDesc(
+					'Paste the private ICS feed URL from Google Calendar → Settings → ' +
+					'"Secret address in iCal format". The URL starts with https://calendar.google.com/calendar/ical/…'
+				);
+
+			setting.addText((text) =>
 				text
 					.setPlaceholder('https://calendar.google.com/calendar/ical/…')
-					.setValue(this.plugin.settings.googleCalendarIcsUrl)
-					.onChange(async (value) => {
-						this.plugin.settings.googleCalendarIcsUrl = value;
+					.setValue(feed.url)
+					.onChange((value) => {
+						draftUrl = value;
+						if (statusEl) {
+							this.setCalendarStatus(feed.id, 'idle', statusEl);
+						}
+					})
+			);
+
+			setting.addButton((btn) =>
+				btn
+					.setButtonText('Save')
+					.setCta()
+					.onClick(async () => {
+						const trimmed = draftUrl.trim();
+						if (!trimmed) {
+							this.setCalendarStatus(feed.id, 'error', statusEl);
+							new Notice('Time blocks: calendar URL cannot be empty.');
+							return;
+						}
+						if (!trimmed.startsWith('https://')) {
+							this.setCalendarStatus(feed.id, 'error', statusEl);
+							new Notice('Time blocks: calendar URL must use HTTPS.');
+							return;
+						}
+
+						feed.url = trimmed;
 						await this.plugin.saveSettings();
+
+						this.setCalendarStatus(feed.id, 'checking', statusEl);
+						const ok = await this.verifyCalendarFeed(trimmed, label);
+						this.setCalendarStatus(feed.id, ok ? 'connected' : 'error', statusEl);
+					})
+			);
+
+			setting.addExtraButton((btn) =>
+				btn
+					.setIcon('trash')
+					.setTooltip('Remove calendar feed')
+					.onClick(async () => {
+						this.calendarConnectionStatus.delete(feed.id);
+						this.plugin.settings.calendarFeeds = calendars.filter(
+							(entry) => entry.id !== feed.id
+						);
+						await this.plugin.saveSettings();
+						this.display();
+					})
+			);
+
+			statusEl = setting.controlEl.createDiv({ cls: 'tb-calendar-status' });
+			const initialStatus = this.calendarConnectionStatus.get(feed.id) ?? 'idle';
+			this.setCalendarStatus(feed.id, initialStatus, statusEl);
+		});
+
+		new Setting(containerEl)
+			.setName('Add calendar feed')
+			.setDesc('Connect another calendar feed.')
+			.addButton((btn) =>
+				btn
+					.setButtonText('Add')
+					.setCta()
+					.onClick(async () => {
+						this.plugin.settings.calendarFeeds.push({
+							id: createCalendarFeedId(),
+							url: '',
+						});
+						await this.plugin.saveSettings();
+						this.display();
 					})
 			);
 
@@ -316,4 +411,47 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 					})
 			);
 	}
+
+	private setCalendarStatus(
+		feedId: string,
+		status: CalendarConnectionStatus,
+		statusEl: HTMLElement
+	): void {
+		this.calendarConnectionStatus.set(feedId, status);
+		setCalendarStatusEl(statusEl, status);
+	}
+
+	private async verifyCalendarFeed(url: string, label: string): Promise<boolean> {
+		try {
+			const resp = await requestUrl({ url, method: 'GET' });
+			parseICS(resp.text);
+			new Notice(`Time blocks: ${label} connected.`);
+			return true;
+		} catch (err) {
+			console.error('[Time Blocks] Calendar feed fetch failed:', err);
+			new Notice(
+				`Time blocks: could not fetch ${label}. Check the calendar URL in plugin settings.`
+			);
+			return false;
+		}
+	}
+}
+
+export function createCalendarFeedId(): string {
+	const suffix = Math.random().toString(16).slice(2, 8);
+	return `calendar-${Date.now()}-${suffix}`;
+}
+
+function setCalendarStatusEl(
+	statusEl: HTMLElement,
+	status: CalendarConnectionStatus
+): void {
+	statusEl.textContent = CALENDAR_STATUS_LABELS[status];
+	statusEl.classList.remove(
+		'tb-calendar-status--idle',
+		'tb-calendar-status--checking',
+		'tb-calendar-status--connected',
+		'tb-calendar-status--error'
+	);
+	statusEl.classList.add(`tb-calendar-status--${status}`);
 }
