@@ -36,6 +36,7 @@ export class TimeBlockView extends ItemView {
 	private weekStart: Date;
 	private gcalEvents: GCalEvent[] = [];
 	private backlogTasks: TaskItem[] = [];
+	/** Full task index for scheduled blocks, regardless of backlog filtering. */
 	private taskIndex = new Map<string, TaskItem>();
 
 	// Elements rebuilt on each render() call

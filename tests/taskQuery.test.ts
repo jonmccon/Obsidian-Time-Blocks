@@ -122,6 +122,11 @@ describe('updateTaskLineCompletion', () => {
 		expect(updated).toBe('  - [ ] Done task');
 	});
 
+	it('normalizes uppercase completion markers', () => {
+		const updated = updateTaskLineCompletion('- [X] Done task', true);
+		expect(updated).toBe('- [x] Done task');
+	});
+
 	it('returns null for non-task lines', () => {
 		const updated = updateTaskLineCompletion('Regular text', true);
 		expect(updated).toBeNull();
