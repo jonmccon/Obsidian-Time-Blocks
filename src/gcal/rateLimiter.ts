@@ -23,7 +23,7 @@ const DEFAULT_MAX_DELAY_MS = 30_000;
  * retried (429 Too Many Requests, 500, 502, 503, 504).
  */
 export function isRetryableStatus(status: number): boolean {
-	return status === 429 || status >= 500;
+	return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
 /**

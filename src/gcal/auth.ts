@@ -19,18 +19,13 @@ const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 /**
  * The OAuth redirect URI.
  *
- * Google requires an exact-match redirect URI registered in the Cloud Console.
- * For Obsidian desktop plugins the standard approach is to use the
- * `urn:ietf:wg:oauth:2.0:oob` redirect which shows the code on-screen for the
- * user to copy, or a localhost redirect.
+ * For Obsidian plugins, we use the loopback address `http://127.0.0.1`.
+ * Google treats loopback redirects specially — it allows any port and ignores
+ * the path component, so the actual redirect may go to e.g.
+ * `http://127.0.0.1:PORT/callback`.  The value registered in Google Cloud
+ * Console must match this base URI.
  *
- * We use the "manual copy/paste" flow (`urn:ietf:wg:oauth:2.0:oob`)
- * for maximum compatibility across desktop & mobile.
- *
- * **Note**: Google has deprecated `urn:ietf:wg:oauth:2.0:oob` for new clients.
- * For newer OAuth client IDs, set up a loopback redirect `http://127.0.0.1`.
- * The `REDIRECT_URI` here should match what the user registered in their
- * Google Cloud Console project.
+ * @see https://developers.google.com/identity/protocols/oauth2/native-app#redirect-uri_loopback
  */
 export const REDIRECT_URI = 'http://127.0.0.1';
 

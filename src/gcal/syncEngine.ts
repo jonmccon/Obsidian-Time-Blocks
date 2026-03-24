@@ -228,6 +228,9 @@ async function pushLocalToRemote(
 	}
 }
 
+/** Milliseconds in one day. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 function applyRemoteToLocal(
 	block: ScheduledBlock,
 	remoteEvent: GoogleCalendarEvent,
@@ -242,21 +245,24 @@ function applyRemoteToLocal(
 	if (start && end) {
 		const weekStartDate = new Date(`${block.weekStart}T00:00:00`);
 
-		block.title = remoteEvent.summary;
-		block.dayIndex = Math.floor(
-			(start.getTime() - weekStartDate.getTime()) / (24 * 60 * 60 * 1000)
-		);
-		block.startHour = start.getHours();
-		block.startMinute = start.getMinutes();
-		block.duration = Math.round(
-			(end.getTime() - start.getTime()) / 60_000
-		);
+		const updatedBlock: ScheduledBlock = {
+			...block,
+			title: remoteEvent.summary,
+			dayIndex: Math.floor(
+				(start.getTime() - weekStartDate.getTime()) / MS_PER_DAY
+			),
+			startHour: start.getHours(),
+			startMinute: start.getMinutes(),
+			duration: Math.round(
+				(end.getTime() - start.getTime()) / 60_000
+			),
+		};
 
 		// Update the blocks array in the plugin
 		const blocks = deps.getBlocks();
 		const idx = blocks.findIndex((b) => b.id === block.id);
 		if (idx !== -1) {
-			blocks[idx] = block;
+			blocks[idx] = updatedBlock;
 			deps.setBlocks(blocks);
 		}
 

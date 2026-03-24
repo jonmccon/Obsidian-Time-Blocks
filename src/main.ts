@@ -26,6 +26,8 @@ export default class TimeBlockPlugin extends Plugin {
 	blocks: ScheduledBlock[] = [];
 	/** Persisted mappings linking blocks ↔ Google Calendar events. */
 	eventMappings: EventMapping[] = [];
+	/** Guard to prevent concurrent sync operations. */
+	private syncing = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -119,40 +121,49 @@ export default class TimeBlockPlugin extends Plugin {
 			new Notice('Time blocks: sign in to your calendar account first.');
 			return;
 		}
+		if (this.syncing) {
+			new Notice('Time blocks: sync already in progress.');
+			return;
+		}
 
-		const result = await runSync(
-			{
-				api: this.buildApiCallbacks(),
-				targetCalendarId: this.settings.syncCalendarId,
-				conflictStrategy: this.settings.conflictStrategy,
-				getBlocks: () => this.blocks,
-				setBlocks: (blocks) => { this.blocks = blocks; },
-				getMappings: () => this.eventMappings,
-				saveMappings: async (mappings) => {
-					this.eventMappings = mappings;
-					await this.saveData(this.buildPayload());
+		this.syncing = true;
+		try {
+			const result = await runSync(
+				{
+					api: this.buildApiCallbacks(),
+					targetCalendarId: this.settings.syncCalendarId,
+					conflictStrategy: this.settings.conflictStrategy,
+					getBlocks: () => this.blocks,
+					setBlocks: (blocks) => { this.blocks = blocks; },
+					getMappings: () => this.eventMappings,
+					saveMappings: async (mappings) => {
+						this.eventMappings = mappings;
+						await this.saveData(this.buildPayload());
+					},
 				},
-			},
-			weekStart
-		);
+				weekStart
+			);
 
-		// Summarize
-		const parts: string[] = [];
-		if (result.created > 0) parts.push(`${result.created} created`);
-		if (result.updated > 0) parts.push(`${result.updated} updated`);
-		if (result.deleted > 0) parts.push(`${result.deleted} deleted`);
-		if (result.conflicts.length > 0)
-			parts.push(`${result.conflicts.length} conflicts`);
-		if (result.errors.length > 0)
-			parts.push(`${result.errors.length} errors`);
+			// Summarize
+			const parts: string[] = [];
+			if (result.created > 0) parts.push(`${result.created} created`);
+			if (result.updated > 0) parts.push(`${result.updated} updated`);
+			if (result.deleted > 0) parts.push(`${result.deleted} deleted`);
+			if (result.conflicts.length > 0)
+				parts.push(`${result.conflicts.length} conflicts`);
+			if (result.errors.length > 0)
+				parts.push(`${result.errors.length} errors`);
 
-		const summary = parts.length > 0
-			? `Sync complete: ${parts.join(', ')}.`
-			: 'Sync complete: no changes.';
-		new Notice(`Time blocks: ${summary}`);
+			const summary = parts.length > 0
+				? `Sync complete: ${parts.join(', ')}.`
+				: 'Sync complete: no changes.';
+			new Notice(`Time blocks: ${summary}`);
 
-		if (result.errors.length > 0) {
-			console.error('[Time Blocks] Sync errors:', result.errors);
+			if (result.errors.length > 0) {
+				console.error('[Time Blocks] Sync errors:', result.errors);
+			}
+		} finally {
+			this.syncing = false;
 		}
 	}
 

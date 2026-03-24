@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	isRetryableStatus,
 	computeBackoff,
@@ -89,6 +89,10 @@ describe('computeBackoff', () => {
 describe('withRetry', () => {
 	beforeEach(() => {
 		vi.useFakeTimers({ shouldAdvanceTime: true });
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	it('returns immediately on success', async () => {
