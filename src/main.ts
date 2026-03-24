@@ -62,7 +62,7 @@ export default class TimeBlockPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'sync-calendar',
-			name: 'Sync with Google Calendar',
+			name: 'Sync calendar events',
 			callback: () => {
 				const views = this.app.workspace
 					.getLeavesOfType(TIME_BLOCK_VIEW_TYPE)
@@ -116,7 +116,7 @@ export default class TimeBlockPlugin extends Plugin {
 	async syncWeek(weekStart: string): Promise<void> {
 		if (!this.settings.enableTwoWaySync) return;
 		if (!this.settings.oauthTokens) {
-			new Notice('Time blocks: sign in to Google Calendar first.');
+			new Notice('Time blocks: sign in to your calendar account first.');
 			return;
 		}
 

@@ -262,14 +262,14 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 
 		if (this.plugin.settings.enableTwoWaySync) {
 			new Setting(containerEl)
-				.setName('OAuth client ID')
+				.setName('Calendar API client ID')
 				.setDesc(
-					'Your Google Cloud Console OAuth 2.0 client ID. ' +
-					'Create one at console.cloud.google.com with the Calendar API enabled.'
+					'Your cloud console OAuth 2.0 client ID. ' +
+					'Create one at console.cloud.google.com with the calendar API enabled.'
 				)
 				.addText((text) =>
 					text
-						.setPlaceholder('xxxxxxxxx.apps.googleusercontent.com')
+						.setPlaceholder('Your client ID')
 						.setValue(this.plugin.settings.oauthClientId)
 						.onChange(async (value) => {
 							this.plugin.settings.oauthClientId = value.trim();
@@ -285,8 +285,8 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 
 			if (isAuthenticated) {
 				new Setting(containerEl)
-					.setName('Google account')
-					.setDesc('Signed in to Google Calendar.')
+					.setName('Calendar account')
+					.setDesc('Signed in to your calendar account.')
 					.addButton((btn) =>
 						btn
 							.setButtonText('Sign out')
@@ -294,7 +294,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 							.onClick(async () => {
 								this.plugin.settings.oauthTokens = null;
 								await this.plugin.saveSettings();
-								new Notice('Time blocks: signed out of Google Calendar.');
+								new Notice('Time blocks: signed out of calendar.');
 								this.display();
 							})
 					);
@@ -302,12 +302,12 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 				new Setting(containerEl)
 					.setName('Target calendar')
 					.setDesc(
-						'The Google Calendar to push scheduled blocks into. ' +
+						'Calendar to push scheduled blocks into. ' +
 						'Enter a calendar ID or use "primary" for your main calendar.'
 					)
 					.addText((text) =>
 						text
-							.setPlaceholder('primary')
+							.setPlaceholder('Calendar ID or primary')
 							.setValue(this.plugin.settings.syncCalendarId)
 							.onChange(async (value) => {
 								this.plugin.settings.syncCalendarId = value.trim() || 'primary';
@@ -345,7 +345,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 				new Setting(containerEl)
 					.setName('Conflict resolution')
 					.setDesc(
-						'How to handle events edited in both Obsidian and Google Calendar.'
+						'How to handle events edited in both Obsidian and the calendar.'
 					)
 					.addDropdown((dropdown) =>
 						dropdown
@@ -367,7 +367,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 					)
 					.addText((text) =>
 						text
-							.setPlaceholder('primary, work@group.calendar.google.com')
+							.setPlaceholder('Comma-separated calendar ID list')
 							.setValue(this.plugin.settings.writableCalendarIds.join(', '))
 							.onChange(async (value) => {
 								this.plugin.settings.writableCalendarIds = value
@@ -617,9 +617,9 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 		let authCodeInput = '';
 
 		const signInSetting = new Setting(containerEl)
-			.setName('Sign in to Google')
+			.setName('Calendar sign-in')
 			.setDesc(
-				'Click "Authorize" to open Google sign-in in your browser. ' +
+				'Click "Authorize" to open the sign-in page in your browser. ' +
 				'After granting access, paste the authorization code below.'
 			);
 
@@ -642,7 +642,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Authorization code')
-			.setDesc('Paste the code from Google here.')
+			.setDesc('Paste the code you received here.')
 			.addText((text) =>
 				text
 					.setPlaceholder('Paste authorization code')
@@ -661,7 +661,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 							return;
 						}
 						if (!this.pendingCodeVerifier) {
-							new Notice('Time blocks: please click "Authorize" first.');
+							new Notice('Time blocks: click authorize first.');
 							return;
 						}
 
@@ -674,7 +674,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 							this.plugin.settings.oauthTokens = tokens;
 							await this.plugin.saveSettings();
 							this.pendingCodeVerifier = null;
-							new Notice('Time blocks: signed in to Google Calendar.');
+							new Notice('Time blocks: signed in to calendar.');
 							this.display();
 						} catch (err) {
 							new Notice(

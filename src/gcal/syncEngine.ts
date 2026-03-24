@@ -15,7 +15,6 @@ import type {
 	EventWriteBody,
 	GoogleCalendarEvent,
 	GoogleDateTime,
-	SyncConflict,
 	SyncResult,
 } from './types';
 import type { CalendarApiCallbacks } from './calendarApi';
