@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_SETTINGS } from '../src/settings';
+import { createCalendarFeedId, DEFAULT_SETTINGS } from '../src/settings';
 import type { ScheduledBlock, TaskItem, GCalEvent, TimeBlockData } from '../src/types';
 
 describe('DEFAULT_SETTINGS', () => {
 	it('has expected default values', () => {
-		expect(DEFAULT_SETTINGS.googleCalendarIcsUrl).toBe('');
+		expect(DEFAULT_SETTINGS.calendarFeeds).toEqual([]);
 		expect(DEFAULT_SETTINGS.defaultTaskDuration).toBe(30);
 		expect(DEFAULT_SETTINGS.workdayStart).toBe(8);
 		expect(DEFAULT_SETTINGS.workdayEnd).toBe(18);
@@ -30,6 +30,14 @@ describe('DEFAULT_SETTINGS', () => {
 		const hexPattern = /^#[0-9A-Fa-f]{6}$/;
 		expect(DEFAULT_SETTINGS.taskBlockColor).toMatch(hexPattern);
 		expect(DEFAULT_SETTINGS.gcalEventColor).toMatch(hexPattern);
+	});
+
+	it('creates calendar feed ids', () => {
+		const id = createCalendarFeedId();
+		const otherId = createCalendarFeedId();
+		expect(id).toMatch(/^calendar-/);
+		expect(otherId).toMatch(/^calendar-/);
+		expect(id).not.toBe(otherId);
 	});
 });
 

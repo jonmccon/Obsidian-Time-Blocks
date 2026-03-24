@@ -1,5 +1,10 @@
 import { Plugin } from 'obsidian';
-import { DEFAULT_SETTINGS, TimeBlockSettings, TimeBlockSettingTab } from './settings';
+import {
+	createCalendarFeedId,
+	DEFAULT_SETTINGS,
+	TimeBlockSettings,
+	TimeBlockSettingTab,
+} from './settings';
 import { ScheduledBlock } from './types';
 import { TIME_BLOCK_VIEW_TYPE, TimeBlockView } from './views/TimeBlockView';
 
@@ -77,6 +82,21 @@ export default class TimeBlockPlugin extends Plugin {
 		const raw = (await this.loadData() ?? {}) as Partial<PersistedData>;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw.settings ?? {});
 		this.blocks = raw.blocks ?? [];
+
+		if (!Array.isArray(this.settings.calendarFeeds)) {
+			this.settings.calendarFeeds = [];
+		}
+
+		interface LegacySettings extends Partial<TimeBlockSettings> {
+			googleCalendarIcsUrl?: string;
+		}
+		const legacyUrl = (raw.settings as LegacySettings | undefined)?.googleCalendarIcsUrl;
+		if (legacyUrl && this.settings.calendarFeeds.length === 0) {
+			this.settings.calendarFeeds = [
+				{ id: createCalendarFeedId(), url: legacyUrl },
+			];
+			await this.saveSettings();
+		}
 	}
 
 	/** Saves only the settings portion (blocks are preserved). */

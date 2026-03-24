@@ -9,7 +9,7 @@ A weekly time-blocking plugin for [Obsidian](https://obsidian.md). Drag tasks fr
 - **Configurable backlog** — Choose between showing all vault tasks or a custom query. The custom query uses a subset of the Obsidian Tasks community plugin query syntax, so users familiar with that plugin can reuse their knowledge.
 - **Drag-and-drop scheduling** — Drag tasks from the backlog onto the grid to schedule them. Once placed, blocks snap to 15-minute increments and can be repositioned by dragging again.
 - **Block resizing** — Drag the bottom edge of any scheduled block to change its duration.
-- **Google Calendar integration** — Paste a private ICS feed URL in settings to overlay your Google Calendar events on the grid (read-only, HTTPS only).
+- **Google Calendar integration** — Save one or more private ICS feed URLs in settings to overlay calendar events on the grid (read-only, HTTPS only).
 - **Customizable colors** — Choose background colors for task blocks and calendar event blocks.
 - **Search & filter** — Filter the backlog by text, tag, or completion status.
 - **Week navigation** — Move between weeks or jump back to the current week.
@@ -28,7 +28,7 @@ A weekly time-blocking plugin for [Obsidian](https://obsidian.md). Drag tasks fr
 
 | Setting | Description | Default |
 |---|---|---|
-| **Calendar feed URL** | Private ICS feed URL from Google Calendar (HTTPS only) | *(empty)* |
+| **Calendar feeds** | Save one or more private ICS feed URLs from Google Calendar (HTTPS only) | *(none)* |
 | **Workday start** | First hour shown on the grid (0–12) | 8 |
 | **Workday end** | Last hour shown on the grid (12–24) | 18 |
 | **Default task duration** | Duration in minutes when a task is first dropped (15–240) | 30 |
@@ -69,6 +69,18 @@ This syntax is a subset of the [Obsidian Tasks](https://obsidian-tasks-group.git
 - **Recurring calendar events are not expanded.** The ICS parser does not process `RRULE` recurrence rules, so recurring Google Calendar events only appear for their original occurrence date and are missing on subsequent weeks.
 - **Timezone offsets in ICS feeds are approximated.** Events with `TZID` parameters are treated as local time rather than being converted from the specified timezone, which may cause events to display at incorrect times.
 - **Custom query unknown rules are silently ignored.** If a query line doesn't match any recognized rule pattern, it is skipped without an error message. Check spelling if a filter doesn't appear to work.
+
+## Two-Way Sync Requirements (Future Scope)
+
+Two-way sync (pushing scheduled tasks back into Google Calendar and updating task status) would require:
+
+- **OAuth 2.0 authentication** with the Google Calendar API (instead of read-only ICS feeds).
+- **Event mapping storage** to persist the Google event ID alongside each scheduled task block.
+- **Create/update/delete logic** to mirror task scheduling changes into Calendar events.
+- **Status synchronization rules** (e.g., marking tasks complete when calendar events are completed, or vice versa).
+- **Conflict resolution** when edits happen in both Obsidian and Google Calendar.
+- **Rate-limit handling** and retry logic for API calls.
+- **User permissions controls** to opt into calendar write access and select which calendars receive updates.
 
 ## Installing the plugin
 

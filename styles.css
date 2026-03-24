@@ -172,6 +172,29 @@
 	margin-top: 2px;
 }
 
+/* ── Settings: calendar connection status ───────────────────── */
+.tb-calendar-status {
+	margin-left: 8px;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.tb-calendar-status--idle {
+	color: var(--text-muted);
+}
+
+.tb-calendar-status--checking {
+	color: var(--text-muted);
+}
+
+.tb-calendar-status--connected {
+	color: var(--text-success);
+}
+
+.tb-calendar-status--error {
+	color: var(--text-error);
+}
+
 /* ── Main area ─────────────────────────────────────────────── */
 .tb-main {
 	flex: 1;

@@ -7,7 +7,7 @@ import {
 	requestUrl,
 } from 'obsidian';
 import TimeBlockPlugin from '../main';
-import { TimeBlockSettings } from '../settings';
+import { calendarFeedLabel, TimeBlockSettings } from '../settings';
 import { GCalEvent, ScheduledBlock, TaskItem } from '../types';
 import { parseICS } from '../utils/icsParser';
 import { applyQuery, parseQuery } from '../utils/queryFilter';
@@ -128,26 +128,50 @@ export class TimeBlockView extends ItemView {
 	}
 
 	private async loadGCalEvents(): Promise<void> {
-		const url = this.plugin.settings.googleCalendarIcsUrl.trim();
-		if (!url) return;
+		const feeds = this.plugin.settings.calendarFeeds;
+		this.gcalEvents = [];
 
-		// Security: only allow HTTPS URLs to prevent accidental fetches to
-		// local-network or non-encrypted endpoints.
-		if (!url.startsWith('https://')) {
-			console.warn('[Time Blocks] Calendar URL rejected: only HTTPS URLs are allowed.');
-			new Notice('Time blocks: calendar URL must use HTTPS.');
-			return;
-		}
+		if (feeds.length === 0) return;
 
-		try {
-			const resp = await requestUrl({ url, method: 'GET' });
-			this.gcalEvents = parseICS(resp.text);
-		} catch (err) {
-			console.error('[Time Blocks] GCal fetch failed:', err);
-			new Notice(
-				'Time blocks: could not fetch the calendar. Check the calendar URL in plugin settings.'
-			);
-		}
+		const results = await Promise.all(
+			feeds.map(async (feed, index) => {
+				const url = feed.url.trim();
+				if (!url) return [];
+
+				const label = calendarFeedLabel(index);
+
+				// Security: only allow HTTPS URLs to prevent accidental fetches to
+				// local-network or non-encrypted endpoints.
+				if (!url.startsWith('https://')) {
+					console.warn(
+						`[Time Blocks] ${label} URL rejected: only HTTPS URLs are allowed.`
+					);
+					new Notice(`Time blocks: ${label} URL must use HTTPS.`);
+					return [];
+				}
+
+				try {
+					const resp = await requestUrl({ url, method: 'GET' });
+					const parsed = parseICS(resp.text);
+					// Namespace event IDs to avoid collisions across multiple feeds.
+					// Use "::" as a literal delimiter between encoded feed and event IDs.
+					// To decode, split on "::" and run decodeURIComponent on each part.
+					const feedKey = encodeURIComponent(feed.id);
+					return parsed.map((event) => ({
+						...event,
+						id: `${feedKey}::${encodeURIComponent(event.id)}`,
+					}));
+				} catch (err) {
+					console.error('[Time Blocks] GCal fetch failed:', err);
+					new Notice(
+						`Time blocks: could not fetch ${label}. Check the calendar URL in plugin settings.`
+					);
+					return [];
+				}
+			})
+		);
+
+		this.gcalEvents = results.flat();
 	}
 
 	// ── Top-level rendering ────────────────────────────────────────────────────
