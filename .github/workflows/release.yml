@@ -1,0 +1,41 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "*"
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: "npm"
+
+            - run: npm ci
+            - run: npm run build
+
+            - name: Create release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  tag="${GITHUB_REF#refs/tags/}"
+
+                  assets=(main.js manifest.json)
+                  if [ -f styles.css ]; then
+                    assets+=(styles.css)
+                  fi
+
+                  gh release create "$tag" \
+                    --title="$tag" \
+                    --generate-notes \
+                    "${assets[@]}"
