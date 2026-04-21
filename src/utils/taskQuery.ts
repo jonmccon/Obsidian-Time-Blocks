@@ -45,6 +45,7 @@ export function parseTaskLine(
 	if (scheduledDateMatch) {
 		const raw = scheduledDateMatch[1];
 		if (raw) scheduledDate = new Date(`${raw}T00:00:00`);
+		title = title.replace(/⏰\s*\d{4}-\d{2}-\d{2}/, '').trim();
 	}
 
 	// --- Parse priority ---

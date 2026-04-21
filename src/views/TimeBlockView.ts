@@ -251,19 +251,21 @@ export class TimeBlockView extends ItemView {
 		}
 
 		// Overdue tasks (past scheduled date) bubble to the top
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
 		const sorted = [...visible].sort((a, b) => {
-			const aOver = isTaskOverdue(a) ? 0 : 1;
-			const bOver = isTaskOverdue(b) ? 0 : 1;
+			const aOver = isTaskOverdue(a, today) ? 0 : 1;
+			const bOver = isTaskOverdue(b, today) ? 0 : 1;
 			return aOver - bOver;
 		});
 
 		for (const task of sorted) {
-			this.buildTaskItem(task);
+			this.buildTaskItem(task, today);
 		}
 	}
 
-	private buildTaskItem(task: TaskItem): void {
-		const overdue = isTaskOverdue(task);
+	private buildTaskItem(task: TaskItem, today: Date): void {
+		const overdue = isTaskOverdue(task, today);
 		const el = this.backlogListEl.createDiv('tb-task-item');
 		if (overdue) el.addClass('tb-task-item--overdue');
 		el.setAttribute('draggable', 'true');
@@ -885,10 +887,8 @@ function formatBlockTimeLabel(block: ScheduledBlock): string {
  * Returns true when a task has a scheduled date (⏰) that is strictly before
  * today's midnight, and the task has not been completed.
  */
-function isTaskOverdue(task: TaskItem): boolean {
+function isTaskOverdue(task: TaskItem, today: Date): boolean {
 	if (task.completed || !task.scheduledDate) return false;
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
 	return task.scheduledDate < today;
 }
 

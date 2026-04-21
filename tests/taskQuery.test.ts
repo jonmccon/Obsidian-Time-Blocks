@@ -171,7 +171,12 @@ describe('clearTaskScheduledDate', () => {
 	function makeApp(lines: string[]) {
 		const content = lines.join('\n');
 		let stored = content;
-		const file = Object.assign(new TFile(), { path: 'tasks.md' });
+
+		class MockFile extends TFile {
+			override path = 'tasks.md';
+		}
+		const file = new MockFile();
+
 		return {
 			vault: {
 				getAbstractFileByPath: () => file,
