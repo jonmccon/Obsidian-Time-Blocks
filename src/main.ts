@@ -11,6 +11,7 @@ import type { CalendarApiCallbacks } from './gcal/calendarApi';
 import { runSync } from './gcal/syncEngine';
 import { ScheduledBlock } from './types';
 import { TIME_BLOCK_VIEW_TYPE, TimeBlockView } from './views/TimeBlockView';
+import { DAY_VIEW_TYPE, DayView } from './views/DayView';
 
 /** Shape of the unified data.json persisted by this plugin. */
 interface PersistedData {
@@ -38,6 +39,12 @@ export default class TimeBlockPlugin extends Plugin {
 			(leaf) => new TimeBlockView(leaf, this)
 		);
 
+		// Register the single-day sidebar view
+		this.registerView(
+			DAY_VIEW_TYPE,
+			(leaf) => new DayView(leaf, this)
+		);
+
 		// Ribbon button
 		this.addRibbonIcon('calendar-days', 'Open time blocks', () => {
 			void this.activateView();
@@ -48,6 +55,12 @@ export default class TimeBlockPlugin extends Plugin {
 			id: 'open',
 			name: 'Open weekly time-block view',
 			callback: () => void this.activateView(),
+		});
+
+		this.addCommand({
+			id: 'open-day-view',
+			name: 'Open day view in sidebar',
+			callback: () => void this.activateDayView(),
 		});
 
 		this.addCommand({
@@ -90,6 +103,18 @@ export default class TimeBlockPlugin extends Plugin {
 		if (!leaf) {
 			leaf = workspace.getLeaf('tab');
 			await leaf.setViewState({ type: TIME_BLOCK_VIEW_TYPE, active: true });
+		}
+		void workspace.revealLeaf(leaf);
+	}
+
+	/** Opens (or focuses) the single-day view in the right sidebar. */
+	async activateDayView(): Promise<void> {
+		const { workspace } = this.app;
+
+		let leaf = workspace.getLeavesOfType(DAY_VIEW_TYPE)[0];
+		if (!leaf) {
+			leaf = workspace.getRightLeaf(false) ?? workspace.getLeaf('split');
+			await leaf.setViewState({ type: DAY_VIEW_TYPE, active: true });
 		}
 		void workspace.revealLeaf(leaf);
 	}
