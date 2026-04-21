@@ -194,11 +194,40 @@ export class TimeBlockView extends ItemView {
 		root.addClass('tb-root');
 
 		this.sidebarEl = root.createDiv('tb-sidebar');
+		const resizer = root.createDiv('tb-sidebar-resizer');
 		this.mainEl = root.createDiv('tb-main');
 
+		this.attachSidebarResizer(resizer);
 		this.buildSidebar();
 		this.buildWeekNav();
 		this.buildGrid();
+	}
+
+	/** Attaches mouse-based resize behaviour to the sidebar drag handle. */
+	private attachSidebarResizer(resizer: HTMLElement): void {
+		resizer.addEventListener('mousedown', (e: MouseEvent) => {
+			e.preventDefault();
+
+			const startX = e.clientX;
+			const startWidth = this.sidebarEl.offsetWidth;
+			resizer.addClass('tb-resizing');
+			document.body.addClass('tb-no-user-select');
+
+			const onMove = (ev: MouseEvent) => {
+				const newWidth = Math.max(150, Math.min(600, startWidth + (ev.clientX - startX)));
+				this.sidebarEl.style.width = `${newWidth}px`;
+			};
+
+			const onUp = () => {
+				resizer.removeClass('tb-resizing');
+				document.body.removeClass('tb-no-user-select');
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+			};
+
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
+		});
 	}
 
 	// ── Sidebar ────────────────────────────────────────────────────────────────
@@ -290,12 +319,13 @@ export class TimeBlockView extends ItemView {
 			});
 		}
 
-		const titleButton = header.createEl('button', {
+		const titleLink = header.createEl('a', {
 			text: task.title,
 			cls: 'tb-task-title',
-			attr: { type: 'button', 'aria-label': 'Open task in source file' },
+			attr: { href: '#', 'aria-label': 'Open task in source file' },
 		});
-		titleButton.addEventListener('click', (e) => {
+		titleLink.addEventListener('click', (e) => {
+			e.preventDefault();
 			e.stopPropagation();
 			void this.openTaskSource(task.id);
 		});
@@ -652,12 +682,13 @@ export class TimeBlockView extends ItemView {
 				void this.updateTaskCompletion(taskId, complete.checked);
 			});
 
-			const titleButton = header.createEl('button', {
+			const titleLink = header.createEl('a', {
 				text: block.title,
 				cls: 'tb-block-title tb-block-title--link',
-				attr: { type: 'button', 'aria-label': 'Open task in source file' },
+				attr: { href: '#', 'aria-label': 'Open task in source file' },
 			});
-			titleButton.addEventListener('click', (e) => {
+			titleLink.addEventListener('click', (e) => {
+				e.preventDefault();
 				e.stopPropagation();
 				void this.openTaskSource(taskId);
 			});
