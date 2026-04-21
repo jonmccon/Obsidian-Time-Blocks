@@ -211,7 +211,7 @@ export class TimeBlockView extends ItemView {
 			const startX = e.clientX;
 			const startWidth = this.sidebarEl.offsetWidth;
 			resizer.addClass('tb-resizing');
-			document.body.style.userSelect = 'none';
+			document.body.addClass('tb-no-user-select');
 
 			const onMove = (ev: MouseEvent) => {
 				const newWidth = Math.max(150, Math.min(600, startWidth + (ev.clientX - startX)));
@@ -220,7 +220,7 @@ export class TimeBlockView extends ItemView {
 
 			const onUp = () => {
 				resizer.removeClass('tb-resizing');
-				document.body.style.userSelect = '';
+				document.body.removeClass('tb-no-user-select');
 				document.removeEventListener('mousemove', onMove);
 				document.removeEventListener('mouseup', onUp);
 			};

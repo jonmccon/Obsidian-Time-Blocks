@@ -38,6 +38,11 @@
 	background: var(--interactive-accent);
 }
 
+/* Prevent text selection while drag-resizing the sidebar */
+body.tb-no-user-select {
+	user-select: none;
+}
+
 .tb-sidebar-header {
 	display: flex;
 	align-items: center;
