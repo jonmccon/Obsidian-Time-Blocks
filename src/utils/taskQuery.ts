@@ -181,7 +181,17 @@ export async function queryTasks(
  * module handles filtering and sorting.
  */
 export async function scanAllTasks(app: App): Promise<TaskItem[]> {
-	const markdownFiles = app.vault.getMarkdownFiles();
+	// Deduplicate by path: getMarkdownFiles() can return the same file more than
+	// once while the vault metadata cache is being rebuilt (e.g. during sync or
+	// after a vault reload).  Processing a file twice would produce identical
+	// task objects that share the same id, causing visible duplicates in the
+	// backlog list.
+	const seen = new Set<string>();
+	const markdownFiles = app.vault.getMarkdownFiles().filter((f) => {
+		if (seen.has(f.path)) return false;
+		seen.add(f.path);
+		return true;
+	});
 
 	const perFile = await Promise.all(
 		markdownFiles.map(async (file) => {
