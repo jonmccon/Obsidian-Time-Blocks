@@ -11,7 +11,7 @@ import { calendarFeedLabel, TimeBlockSettings } from '../settings';
 import { GCalEvent, ScheduledBlock, TaskItem } from '../types';
 import { parseICS } from '../utils/icsParser';
 import { applyQuery, parseQuery } from '../utils/queryFilter';
-import { queryTasks, scanAllTasks, setTaskCompletion } from '../utils/taskQuery';
+import { queryTasks, scanAllTasks, setTaskCompletion, clearTaskScheduledDate } from '../utils/taskQuery';
 import {
 	addWeeks,
 	formatDate,
@@ -250,13 +250,22 @@ export class TimeBlockView extends ItemView {
 			return;
 		}
 
-		for (const task of visible) {
+		// Overdue tasks (past scheduled date) bubble to the top
+		const sorted = [...visible].sort((a, b) => {
+			const aOver = isTaskOverdue(a) ? 0 : 1;
+			const bOver = isTaskOverdue(b) ? 0 : 1;
+			return aOver - bOver;
+		});
+
+		for (const task of sorted) {
 			this.buildTaskItem(task);
 		}
 	}
 
 	private buildTaskItem(task: TaskItem): void {
+		const overdue = isTaskOverdue(task);
 		const el = this.backlogListEl.createDiv('tb-task-item');
+		if (overdue) el.addClass('tb-task-item--overdue');
 		el.setAttribute('draggable', 'true');
 		el.dataset.taskId = task.id;
 		el.setAttribute('title', `${task.filePath} : line ${task.lineNumber}`);
@@ -306,6 +315,23 @@ export class TimeBlockView extends ItemView {
 				cls: 'tb-task-due',
 			});
 			if (task.dueDate < new Date()) dateEl.addClass('tb-overdue');
+		}
+
+		if (task.scheduledDate) {
+			const schedEl = el.createDiv({ cls: 'tb-task-scheduled' });
+			const label = task.scheduledDate.toLocaleDateString();
+			const prefix = overdue ? '⚠ Scheduled ' : 'Scheduled ';
+			schedEl.createSpan({ text: `${prefix}${label}` });
+			schedEl.createSpan({ text: ' · ' });
+			const clearBtn = schedEl.createEl('button', {
+				text: 'clear',
+				cls: 'tb-task-clear-scheduled',
+				attr: { type: 'button', 'aria-label': 'Clear scheduled date' },
+			});
+			clearBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				void this.clearScheduledDate(task.id);
+			});
 		}
 
 		if (task.tags.length > 0) {
@@ -820,6 +846,24 @@ export class TimeBlockView extends ItemView {
 		this.renderBlocks();
 	}
 
+	private async clearScheduledDate(taskId: string): Promise<void> {
+		const task = await this.resolveTask(taskId);
+		if (!task) {
+			new Notice('Time blocks: task not found.');
+			return;
+		}
+
+		const updated = await clearTaskScheduledDate(this.app, task);
+		if (!updated) {
+			new Notice('Time blocks: unable to clear scheduled date.');
+			return;
+		}
+
+		await this.loadTasks();
+		this.renderBacklogList();
+		this.renderBlocks();
+	}
+
 	private getDaySlots(dayIndex: number): HTMLElement | null {
 		const col = this.gridEl?.querySelector(
 			`.tb-day-col[data-day-index="${dayIndex}"]`
@@ -835,6 +879,17 @@ function formatBlockTimeLabel(block: ScheduledBlock): string {
 		? `${formatHour(block.startHour)}:${String(block.startMinute).padStart(2, '0')}`
 		: formatHour(block.startHour);
 	return `${startLabel} · ${block.duration} min`;
+}
+
+/**
+ * Returns true when a task has a scheduled date (⏰) that is strictly before
+ * today's midnight, and the task has not been completed.
+ */
+function isTaskOverdue(task: TaskItem): boolean {
+	if (task.completed || !task.scheduledDate) return false;
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	return task.scheduledDate < today;
 }
 
 /** Returns `undefined` when the filter string is empty/whitespace. */

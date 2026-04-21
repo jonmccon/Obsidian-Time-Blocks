@@ -55,6 +55,10 @@ export class ItemView {
 
 export class WorkspaceLeaf {}
 
+export class TFile {
+	path = '';
+}
+
 export function requestUrl(_opts: unknown): Promise<{ text: string }> {
 	return Promise.resolve({ text: '' });
 }
