@@ -150,9 +150,11 @@ export async function scanAllTasks(app: App): Promise<TaskItem[]> {
 	// task objects that share the same id, causing visible duplicates in the
 	// backlog list.
 	const seen = new Set<string>();
-	const markdownFiles = app.vault
-		.getMarkdownFiles()
-		.filter((f) => (seen.has(f.path) ? false : (seen.add(f.path), true)));
+	const markdownFiles = app.vault.getMarkdownFiles().filter((f) => {
+		if (seen.has(f.path)) return false;
+		seen.add(f.path);
+		return true;
+	});
 
 	const perFile = await Promise.all(
 		markdownFiles.map(async (file) => {
