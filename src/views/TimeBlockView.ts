@@ -373,29 +373,30 @@ export class TimeBlockView extends ItemView {
 		this.backlogListEl.empty();
 
 		const query = this.searchInput?.value?.toLowerCase() ?? '';
-		let visible = this.backlogTasks.filter((t) =>
+		let visibleTasks = this.backlogTasks.filter((t) =>
 			t.title.toLowerCase().includes(query)
 		);
 
 		// Apply multi-select tag filter (show tasks containing ANY of the active tags)
 		if (this.activeTagFilters.size > 0) {
-			visible = visible.filter((t) =>
+			visibleTasks = visibleTasks.filter((t) =>
 				t.tags.some((tag) => this.activeTagFilters.has(tag))
 			);
 		}
 
-		if (visible.length === 0) {
+		const hasActiveFilters = query.length > 0 || this.activeTagFilters.size > 0;
+
+		if (visibleTasks.length === 0) {
 			this.backlogListEl.createEl('p', {
-				text:
-					query || this.activeTagFilters.size > 0
-						? 'No matching tasks.'
-						: 'No incomplete tasks found in the vault.',
+				text: hasActiveFilters
+					? 'No matching tasks.'
+					: 'No incomplete tasks found in the vault.',
 				cls: 'tb-empty-msg',
 			});
 			return;
 		}
 
-		for (const task of visible) {
+		for (const task of visibleTasks) {
 			this.buildTaskItem(task);
 		}
 	}

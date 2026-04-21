@@ -417,7 +417,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setDesc(
 				'Backlog mode, tag filters, and the completed-tasks toggle are ' +
-				'now available directly in the Backlog sidebar panel.'
+				'now available at the top of the Backlog sidebar panel, just above the search bar.'
 			);
 
 		new Setting(containerEl)
