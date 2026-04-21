@@ -16,12 +16,26 @@
 .tb-sidebar {
 	display: flex;
 	flex-direction: column;
-	width: 240px;
+	width: 300px;
 	min-width: 180px;
 	flex-shrink: 0;
-	border-right: 1px solid var(--background-modifier-border);
 	background: var(--background-secondary);
 	overflow: hidden;
+}
+
+/* ── Sidebar resize handle ──────────────────────────────────── */
+.tb-sidebar-resizer {
+	width: 4px;
+	flex-shrink: 0;
+	cursor: col-resize;
+	background: var(--background-modifier-border);
+	transition: background 0.15s;
+	z-index: 4;
+}
+
+.tb-sidebar-resizer:hover,
+.tb-sidebar-resizer.tb-resizing {
+	background: var(--interactive-accent);
 }
 
 .tb-sidebar-header {
@@ -143,6 +157,7 @@
 	cursor: pointer;
 	flex: 1;
 	min-width: 0;
+	text-decoration: none;
 }
 
 .tb-task-title:hover {
@@ -418,6 +433,7 @@
 	padding: 0;
 	color: inherit;
 	text-align: left;
+	text-decoration: none;
 	flex: 1;
 	min-width: 0;
 }
