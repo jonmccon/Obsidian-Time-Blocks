@@ -1,0 +1,95 @@
+name: Preview
+
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    # ── Build & upload the preview artifact ──────────────────────────────────
+    build-preview:
+        name: Build preview
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Use Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build plugin
+              run: npm run build
+
+            - name: Copy artifacts into preview folder
+              run: |
+                  cp styles.css preview/
+                  cp main.js    preview/
+
+            - name: Upload preview artifact
+              id: upload
+              uses: actions/upload-artifact@v4
+              with:
+                  name: preview-pr${{ github.event.pull_request.number }}
+                  path: preview/
+                  retention-days: 14
+                  if-no-files-found: error
+
+            - name: Post PR comment with artifact link
+              uses: actions/github-script@v7
+              env:
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+              with:
+                  script: |
+                      const runUrl  = process.env.RUN_URL;
+                      const prNum   = process.env.PR_NUMBER;
+                      const body = [
+                        '## ⚡ Preview build ready',
+                        '',
+                        `A static HTML preview of this PR has been built with placeholder data and default styling.`,
+                        '',
+                        `**[⬇ Download preview artifact](${runUrl})** (look for \`preview-pr${prNum}\`)`,
+                        '',
+                        '### How to view',
+                        '1. Download and unzip the artifact.',
+                        '2. Open `index.html` in your browser.',
+                        '',
+                        '> _Preview uses hardcoded placeholder tasks and blocks — no vault or Obsidian needed._',
+                      ].join('\n');
+
+                      // Upsert: update existing bot comment if present, otherwise create
+                      const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo:  context.repo.repo,
+                        issue_number: context.issue.number,
+                      });
+
+                      const marker = '## ⚡ Preview build ready';
+                      const existing = comments.find(
+                        (c) => c.user.type === 'Bot' && c.body.includes(marker)
+                      );
+
+                      if (existing) {
+                        await github.rest.issues.updateComment({
+                          owner:      context.repo.owner,
+                          repo:       context.repo.repo,
+                          comment_id: existing.id,
+                          body,
+                        });
+                      } else {
+                        await github.rest.issues.createComment({
+                          owner:        context.repo.owner,
+                          repo:         context.repo.repo,
+                          issue_number: context.issue.number,
+                          body,
+                        });
+                      }
