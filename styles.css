@@ -16,12 +16,31 @@
 .tb-sidebar {
 	display: flex;
 	flex-direction: column;
-	width: 240px;
+	width: 300px;
 	min-width: 180px;
 	flex-shrink: 0;
-	border-right: 1px solid var(--background-modifier-border);
 	background: var(--background-secondary);
 	overflow: hidden;
+}
+
+/* ── Sidebar resize handle ──────────────────────────────────── */
+.tb-sidebar-resizer {
+	width: 4px;
+	flex-shrink: 0;
+	cursor: col-resize;
+	background: var(--background-modifier-border);
+	transition: background 0.15s;
+	z-index: 4;
+}
+
+.tb-sidebar-resizer:hover,
+.tb-sidebar-resizer.tb-resizing {
+	background: var(--interactive-accent);
+}
+
+/* Prevent text selection while drag-resizing the sidebar */
+body.tb-no-user-select {
+	user-select: none;
 }
 
 .tb-sidebar-header {
@@ -143,6 +162,7 @@
 	cursor: pointer;
 	flex: 1;
 	min-width: 0;
+	text-decoration: none;
 }
 
 .tb-task-title:hover {
@@ -418,6 +438,7 @@
 	padding: 0;
 	color: inherit;
 	text-align: left;
+	text-decoration: none;
 	flex: 1;
 	min-width: 0;
 }
@@ -621,6 +642,54 @@
 
 .tb-tag-chip--colored.tb-tag-chip--active {
 	background: color-mix(in srgb, var(--tb-tag-chip-color) 15%, var(--background-primary));
+}
+
+/* ── Day view (sidebar) ─────────────────────────────────────── */
+.tb-day-root {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+	font-size: 13px;
+	color: var(--text-normal);
+	background: var(--background-primary);
+}
+
+.tb-day-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+.tb-day-nav-label {
+	flex: 1;
+	font-weight: 600;
+	font-size: 13px;
+	text-align: center;
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
+.tb-day-grid-wrapper {
+	display: flex;
+	flex: 1;
+	overflow: auto;
+	position: relative;
+}
+
+.tb-day-time-col {
+	width: 48px;
+	min-width: 48px;
+	flex-shrink: 0;
+	position: sticky;
+	left: 0;
+	z-index: 3;
+	background: var(--background-primary);
+	border-right: 1px solid var(--background-modifier-border);
 }
 
 /* ── Tag color indicator (left border on backlog items) ────── */

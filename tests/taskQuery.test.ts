@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { parseTaskLine, updateTaskLineCompletion } from '../src/utils/taskQuery';
+import { describe, it, expect, vi } from 'vitest';
+import { parseTaskLine, scanAllTasks, updateTaskLineCompletion } from '../src/utils/taskQuery';
+import type { App } from 'obsidian';
 
 describe('parseTaskLine', () => {
 	it('parses a basic incomplete task', () => {
@@ -130,5 +131,29 @@ describe('updateTaskLineCompletion', () => {
 	it('returns null for non-task lines', () => {
 		const updated = updateTaskLineCompletion('Regular text', true);
 		expect(updated).toBeNull();
+	});
+});
+
+describe('scanAllTasks', () => {
+	it('deduplicates files when getMarkdownFiles returns the same path twice', async () => {
+		// Simulate the Obsidian vault returning duplicate TFile entries for the
+		// same path (can happen during vault sync or metadata cache rebuilds).
+		const fileA = { path: 'notes.md' };
+		const mockApp = {
+			vault: {
+				// Return the same file object twice to mimic the duplicated-entry bug
+				getMarkdownFiles: vi.fn(() => [fileA, fileA]),
+				cachedRead: vi.fn(async () => '- [ ] Buy milk\n'),
+			},
+		} as unknown as App;
+
+		const tasks = await scanAllTasks(mockApp);
+
+		// Each task id encodes path + line number; with deduplication only one
+		// entry should be present even though getMarkdownFiles returned two.
+		expect(tasks).toHaveLength(1);
+		expect(tasks[0]?.id).toBe('notes.md:1');
+		// The file was only read once
+		expect(mockApp.vault.cachedRead).toHaveBeenCalledTimes(1);
 	});
 });
