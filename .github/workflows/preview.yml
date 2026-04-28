@@ -2,16 +2,17 @@ name: Preview
 
 on:
     pull_request:
-        types: [opened, synchronize, reopened]
+        types: [opened, synchronize, reopened, closed]
 
 permissions:
-    contents: read
+    contents: write
     pull-requests: write
 
 jobs:
-    # ── Build & upload the preview artifact ──────────────────────────────────
+    # ── Build & deploy preview to GitHub Pages ────────────────────────────────
     build-preview:
-        name: Build preview
+        name: Build and deploy preview
+        if: github.event.action != 'closed'
         runs-on: ubuntu-latest
 
         steps:
@@ -43,27 +44,37 @@ jobs:
                   retention-days: 14
                   if-no-files-found: error
 
-            - name: Post PR comment with artifact link
+            - name: Deploy preview to GitHub Pages
+              uses: JamesIves/github-pages-deploy-action@v4
+              with:
+                  branch: gh-pages
+                  folder: preview
+                  target-folder: pr-${{ github.event.pull_request.number }}
+                  clean: true
+                  commit-message: "Deploy preview for PR #${{ github.event.pull_request.number }} (${{ github.sha }})"
+
+            - name: Post PR comment with Pages URL
               uses: actions/github-script@v7
               env:
-                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}
+                  PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
               with:
                   script: |
-                      const runUrl  = process.env.RUN_URL;
-                      const prNum   = process.env.PR_NUMBER;
+                      const prNum    = process.env.PR_NUMBER;
+                      const pagesUrl = process.env.PAGES_URL;
+                      const runUrl   = process.env.RUN_URL;
                       const body = [
                         '## ⚡ Preview build ready',
                         '',
-                        `A static HTML preview of this PR has been built with placeholder data and default styling.`,
+                        `**[🌐 Open live preview](${pagesUrl})**`,
                         '',
-                        `**[⬇ Download preview artifact](${runUrl})** (look for \`preview-pr${prNum}\`)`,
+                        `> URL: \`${pagesUrl}\``,
                         '',
-                        '### How to view',
-                        '1. Download and unzip the artifact.',
-                        '2. Open `index.html` in your browser.',
+                        `_Also available as a [downloadable artifact](${runUrl}) (\`preview-pr${prNum}\`) for offline viewing._`,
                         '',
-                        '> _Preview uses hardcoded placeholder tasks and blocks — no vault or Obsidian needed._',
+                        '> Preview uses hardcoded placeholder tasks and blocks — no vault or Obsidian needed.',
+                        '> This page is automatically removed when the PR is closed.',
                       ].join('\n');
 
                       // Upsert: update existing bot comment if present, otherwise create
@@ -90,6 +101,78 @@ jobs:
                           owner:        context.repo.owner,
                           repo:         context.repo.repo,
                           issue_number: context.issue.number,
+                          body,
+                        });
+                      }
+
+    # ── Remove the Pages subdirectory when the PR is closed ──────────────────
+    cleanup-preview:
+        name: Remove Pages preview
+        if: github.event.action == 'closed'
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  # Fetch enough history so the gh-pages branch is accessible
+                  fetch-depth: 0
+
+            - name: Delete pr-${{ github.event.pull_request.number }} from gh-pages
+              env:
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+              run: |
+                  git config user.name  "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                  # Check whether the gh-pages branch exists at all
+                  if ! git ls-remote --exit-code origin gh-pages; then
+                    echo "gh-pages branch does not exist yet — nothing to clean up."
+                    exit 0
+                  fi
+
+                  git fetch origin gh-pages
+                  git worktree add /tmp/gh-pages-work FETCH_HEAD
+
+                  TARGET_DIR="/tmp/gh-pages-work/pr-${PR_NUMBER}"
+                  if [ ! -d "$TARGET_DIR" ]; then
+                    echo "pr-${PR_NUMBER}/ not found on gh-pages — nothing to remove."
+                    exit 0
+                  fi
+
+                  rm -rf "$TARGET_DIR"
+                  cd /tmp/gh-pages-work
+                  git add -A
+                  git commit -m "Remove Pages preview for PR #${PR_NUMBER}"
+                  git push origin HEAD:gh-pages
+
+            - name: Update PR comment to indicate removal
+              uses: actions/github-script@v7
+              env:
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+              with:
+                  script: |
+                      const prNum = process.env.PR_NUMBER;
+                      const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo:  context.repo.repo,
+                        issue_number: context.issue.number,
+                      });
+
+                      const marker = '## ⚡ Preview build ready';
+                      const existing = comments.find(
+                        (c) => c.user.type === 'Bot' && c.body.includes(marker)
+                      );
+
+                      if (existing) {
+                        const body = [
+                          '## ~~⚡ Preview build ready~~ (removed)',
+                          '',
+                          `The Pages preview for PR #${prNum} has been removed now that this PR is closed.`,
+                        ].join('\n');
+                        await github.rest.issues.updateComment({
+                          owner:      context.repo.owner,
+                          repo:       context.repo.repo,
+                          comment_id: existing.id,
                           body,
                         });
                       }
