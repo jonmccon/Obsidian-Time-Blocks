@@ -28,6 +28,7 @@
 		"vitest": "^4.1.0"
 	},
 	"dependencies": {
+		"eslint": "^10.2.1",
 		"obsidian": "latest"
 	}
 }

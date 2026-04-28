@@ -356,7 +356,7 @@ export class TimeBlockView extends ItemView {
 			schedEl.createSpan({ text: `${prefix}${label}` });
 			schedEl.createSpan({ text: ' · ' });
 			const clearBtn = schedEl.createEl('button', {
-				text: 'clear',
+				text: 'Clear',
 				cls: 'tb-task-clear-scheduled',
 				attr: { type: 'button', 'aria-label': 'Clear scheduled date' },
 			});
