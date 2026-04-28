@@ -660,7 +660,7 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 				'Paste the full redirect URL from your browser address bar ' +
 				'(e.g. http://127.0.0.1?code=…&state=…) or just the code. ' +
 				'Pasting the full URL allows the plugin to verify the state ' +
-				'parameter and protect against cross-site request forgery.'
+				'parameter and protect against cross-site request forgery (CSRF).'
 			)
 			.addText((text) =>
 				text
@@ -700,8 +700,14 @@ export class TimeBlockSettingTab extends PluginSettingTab {
 							// Not a URL — treat the whole string as the bare code.
 						}
 
-						// Validate state when it can be extracted from the redirect URL.
-						if (receivedState !== null && receivedState !== this.pendingState) {
+						// Validate state when the redirect URL supplies one.
+						// Reject if: a state was received but doesn't match what we generated,
+						// OR if a state was received but we have no expected state (shouldn't
+						// happen if the Authorize button was clicked, but guards edge cases).
+						if (
+							receivedState !== null &&
+							(this.pendingState === null || receivedState !== this.pendingState)
+						) {
 							new Notice(
 								'Time blocks: state mismatch — possible CSRF attempt. Please authorize again.'
 							);
