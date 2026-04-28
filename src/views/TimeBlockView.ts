@@ -282,13 +282,15 @@ export class TimeBlockView extends ItemView {
 			cls: 'tb-mode-pill' + (backlogMode === 'all' ? ' tb-mode-pill--active' : ''),
 			attr: { type: 'button', 'aria-pressed': String(backlogMode === 'all') },
 		});
-		allBtn.addEventListener('click', async () => {
-			if (this.plugin.settings.backlogMode === 'all') return;
-			this.plugin.settings.backlogMode = 'all';
-			this.activeTagFilters.clear();
-			await this.plugin.saveSettings();
-			this.renderFilterControls();
-			await this.refresh();
+		allBtn.addEventListener('click', () => {
+			void (async () => {
+				if (this.plugin.settings.backlogMode === 'all') return;
+				this.plugin.settings.backlogMode = 'all';
+				this.activeTagFilters.clear();
+				await this.plugin.saveSettings();
+				this.renderFilterControls();
+				await this.refresh();
+			})();
 		});
 
 		const customBtn = modeRow.createEl('button', {
@@ -296,13 +298,15 @@ export class TimeBlockView extends ItemView {
 			cls: 'tb-mode-pill' + (backlogMode === 'custom' ? ' tb-mode-pill--active' : ''),
 			attr: { type: 'button', 'aria-pressed': String(backlogMode === 'custom') },
 		});
-		customBtn.addEventListener('click', async () => {
-			if (this.plugin.settings.backlogMode === 'custom') return;
-			this.plugin.settings.backlogMode = 'custom';
-			this.activeTagFilters.clear();
-			await this.plugin.saveSettings();
-			this.renderFilterControls();
-			await this.refresh();
+		customBtn.addEventListener('click', () => {
+			void (async () => {
+				if (this.plugin.settings.backlogMode === 'custom') return;
+				this.plugin.settings.backlogMode = 'custom';
+				this.activeTagFilters.clear();
+				await this.plugin.saveSettings();
+				this.renderFilterControls();
+				await this.refresh();
+			})();
 		});
 
 		if (backlogMode === 'all') {
@@ -312,13 +316,16 @@ export class TimeBlockView extends ItemView {
 			});
 			const completedCb = completedLabel.createEl('input', {
 				attr: { type: 'checkbox' },
-			}) as HTMLInputElement;
+			});
+			if (!(completedCb instanceof HTMLInputElement)) return;
 			completedCb.checked = showCompletedTasks;
 			completedLabel.createSpan({ text: 'Show completed' });
-			completedCb.addEventListener('change', async () => {
-				this.plugin.settings.showCompletedTasks = completedCb.checked;
-				await this.plugin.saveSettings();
-				await this.refresh();
+			completedCb.addEventListener('change', () => {
+				void (async () => {
+					this.plugin.settings.showCompletedTasks = completedCb.checked;
+					await this.plugin.saveSettings();
+					await this.refresh();
+				})();
 			});
 		} else {
 			// Compact custom query textarea
@@ -326,15 +333,18 @@ export class TimeBlockView extends ItemView {
 				cls: 'tb-sidebar-query',
 				attr: {
 					rows: '4',
-					placeholder: 'not done\ntag includes #work\nlimit to 20 tasks',
+					placeholder: 'Not done\ntag includes #work\nlimit to 20 tasks',
 					'aria-label': 'Custom task query',
 				},
-			}) as HTMLTextAreaElement;
+			});
+			if (!(queryArea instanceof HTMLTextAreaElement)) return;
 			queryArea.value = this.plugin.settings.customTaskQuery;
-			queryArea.addEventListener('change', async () => {
-				this.plugin.settings.customTaskQuery = queryArea.value;
-				await this.plugin.saveSettings();
-				await this.refresh();
+			queryArea.addEventListener('change', () => {
+				void (async () => {
+					this.plugin.settings.customTaskQuery = queryArea.value;
+					await this.plugin.saveSettings();
+					await this.refresh();
+				})();
 			});
 		}
 	}
@@ -345,7 +355,7 @@ export class TimeBlockView extends ItemView {
 		this.tagBarEl.empty();
 
 		if (this.plugin.settings.backlogMode !== 'all') {
-			this.tagBarEl.style.display = 'none';
+			this.tagBarEl.addClass('is-hidden');
 			return;
 		}
 
@@ -358,12 +368,12 @@ export class TimeBlockView extends ItemView {
 		}
 
 		if (allTags.size === 0) {
-			this.tagBarEl.style.display = 'none';
+			this.tagBarEl.addClass('is-hidden');
 			this.activeTagFilters.clear();
 			return;
 		}
 
-		this.tagBarEl.style.display = '';
+		this.tagBarEl.removeClass('is-hidden');
 
 		// Remove any active filters for tags that no longer appear in the list
 		for (const active of [...this.activeTagFilters]) {

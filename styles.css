@@ -606,6 +606,10 @@ body.tb-no-user-select {
 	flex-shrink: 0;
 }
 
+.tb-tag-bar.is-hidden {
+	display: none;
+}
+
 .tb-tag-chip {
 	padding: 2px 8px;
 	border-radius: 10px;
